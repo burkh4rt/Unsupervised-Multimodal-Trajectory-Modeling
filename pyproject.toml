@@ -1,0 +1,55 @@
+[project]
+name = "unsupervised-multimodal-trajectory-modeling"
+authors = [
+  {name = "Michael C. Burkhart", email = "mcb93@cam.ac.uk" }
+]
+description = "trains mixtures of state space models with expectation maximization"
+readme = {file = "README.md", content-type = "text/markdown"}
+keywords = [
+  "unsupervised clustering", 
+  "mixture models", 
+  "state space models",
+  "machine learning"
+]
+license = {file = "LICENSE.txt"}
+dependencies = [
+  "matplotlib>=3.5",
+  "numba>=0.55.1",
+  "numpy>=1.22",
+  "pandas>=1.4",
+  "pip>=23.0.0",
+  "scikit-learn>=1",
+  "scipy>=1.7",
+  "seaborn>=0.11",
+  "statsmodels>=0.13",
+  "tabulate>=0.8"
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Natural Language :: English",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+version = "2023.1.1"
+requires-python = ">=3.10"
+
+[project.urls]
+Repository = "https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling.git"
+
+[tool.setuptools.packages]
+find = {}
+
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 79
+exclude = '''
+/(
+    \.git
+  | \.idea
+)/
+'''
