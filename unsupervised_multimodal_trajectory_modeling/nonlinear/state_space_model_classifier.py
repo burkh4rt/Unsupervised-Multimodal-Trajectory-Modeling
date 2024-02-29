@@ -94,11 +94,11 @@ class StateSpaceModelClassifier(
 
 # run some tests if called as a script
 if __name__ == "__main__":
+    import sklearn.metrics as skl_metrics
+    import state_space_model_linear_gaussian as ssm_lg
     from framework.linear_gaussian import (
         marginalizable_state_space_model as mssm,
     )
-    import state_space_model_linear_gaussian as ssm_lg
-    import sklearn.metrics as skl_metrics
 
     rng = np.random.default_rng(0)
 

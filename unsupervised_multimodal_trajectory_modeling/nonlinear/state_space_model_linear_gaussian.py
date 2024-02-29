@@ -9,9 +9,9 @@ import pickle
 
 import numpy as np
 
-from . import state_space_model as ssm
 from ..linear_gaussian import marginalizable_state_space_model as mssm
 from ..util import util_state_space as util
+from . import state_space_model as ssm
 
 np_eps = np.finfo(float).eps
 

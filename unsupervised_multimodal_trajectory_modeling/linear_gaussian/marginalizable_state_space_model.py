@@ -20,10 +20,11 @@ is multivariate Gaussian, this enables us to calculate marginal
 distributions when we encounter hidden variables or missing data.
 """
 
+import warnings
+
+import numba as nb
 import numpy as np
 import scipy.stats as sp_stats
-import numba as nb
-import warnings
 
 warnings.simplefilter("ignore")
 

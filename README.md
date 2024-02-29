@@ -1,6 +1,7 @@
 # Unsupervised Multimodal Trajectory Modeling
 
 [![DOI](https://zenodo.org/badge/692068384.svg)](https://zenodo.org/badge/latestdoi/692068384)
+[![SWH](https://archive.softwareheritage.org/badge/swh:1:dir:a9123caa1e7aaa7bdce9acd01c9bf9dffcfb056b/)](https://archive.softwareheritage.org/swh:1:dir:a9123caa1e7aaa7bdce9acd01c9bf9dffcfb056b;origin=https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling;visit=swh:1:snp:1c1b2d843e04305784c721ad41ca490b195c0274;anchor=swh:1:rev:3f6f6b11ee8bea55c0882f3e84f3c8ddef6a5bc1)
 
 We propose and validate a mixture of state space models to perform unsupervised
 clustering of short trajectories. Within the state space framework, we let
@@ -132,6 +133,8 @@ the measurement model.
     Methodol.) 39.1 (1977), pp. 1–38.
 
 <!--
+rm dist/*
+isort --profile black .
 black .
 prettier --write --print-width 79 --prose-wrap always **/*.md
 python3 -m build

@@ -25,8 +25,8 @@ import sklearn.cluster as skl_cluster
 import sklearn.linear_model as skl_lm
 import statsmodels.api as sm
 
-from . import marginalizable_state_space_model as statespace
 from ..util import util_state_space as util
+from . import marginalizable_state_space_model as statespace
 
 plt.rcParams["figure.autolayout"] = True
 plt.rcParams["legend.loc"] = "upper right"

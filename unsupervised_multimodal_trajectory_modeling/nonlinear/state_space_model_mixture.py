@@ -10,15 +10,16 @@ from __future__ import annotations
 import datetime
 import glob
 import gzip
-import json
 import hashlib
+import json
 import os
 import pickle
 import string
 import warnings
 
 import numpy as np
-from sklearn import base as skl_base, cluster as skl_cluster
+from sklearn import base as skl_base
+from sklearn import cluster as skl_cluster
 
 from ..util import util_state_space as util
 
@@ -212,7 +213,9 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
                         "Model found in cache does not match our "
                         "requirements."
                     )
-                pass
+            except AttributeError:
+                if verbose:
+                    print("Issue loading cached model.")
 
         match init:
             case "k-means" | "kmeans":
@@ -507,12 +510,12 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
 if __name__ == "__main__":
     print("Running tests...")
 
+    import sklearn.metrics as skl_metrics
+    import state_space_model_knn as ssm_knn
+    import state_space_model_linear_gaussian as ssm_lg
     from framework.linear_gaussian import (
         marginalizable_state_space_model as mssm,
     )
-    import state_space_model_linear_gaussian as ssm_lg
-    import state_space_model_knn as ssm_knn
-    import sklearn.metrics as skl_metrics
 
     rng = np.random.default_rng(42)
 

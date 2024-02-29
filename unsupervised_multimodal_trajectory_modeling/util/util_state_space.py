@@ -12,15 +12,13 @@ import os
 import pickle
 import re
 import string
-import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import sklearn.linear_model as skl_lm
-import sklearn.model_selection as skl_mdl_sel
-import sklearn.metrics as skl_mets
+import scipy.optimize as sp_opt
 import scipy.stats as sp_stats
+import sklearn.linear_model as skl_lm
 
 plt.rcParams["figure.autolayout"] = True
 plt.rcParams["legend.loc"] = "upper right"
@@ -442,6 +440,51 @@ def parcellate_arrays(*args) -> np.array:
         )
         for arr in args
     )
+
+
+def weighted_mean_and_covariance(values: np.array, weights: np.array):
+    """calculated the weighted mean and covariance of `values` with weights
+    `weights`
+
+    Parameters
+    ----------
+    values
+        n_time × n_data × dim_data array of values
+    weights
+        n_data array of weights
+
+    Returns
+    -------
+    mean
+        n_time × dim_data weighted mean
+    cov
+        n_time × dim_data × dim_data weighted covariance
+
+    """
+    assert (weights >= 0).all()
+
+    # weighted mean
+    m_c_num = np.einsum("ijk,j->ik", np.nan_to_num(values), weights)
+    m_c_denom = np.einsum("ijk,j->ik", np.isfinite(values), weights)
+    m_c = m_c_num / m_c_denom
+
+    # weighted covariance
+    v_centered = values - np.expand_dims(m_c, axis=1)
+    v_c_num = np.einsum(
+        "ijk,j,ijl->ikl",
+        np.nan_to_num(v_centered),
+        weights,
+        np.nan_to_num(v_centered),
+    )
+    v_c_denom = np.einsum(
+        "ijk,j,ijl->ikl",
+        np.isfinite(v_centered),
+        weights,
+        np.isfinite(v_centered),
+    )
+    v_c = v_c_num / v_c_denom
+
+    return m_c, v_c
 
 
 def plot_metric_vs_clusters_over_time(
@@ -1088,68 +1131,6 @@ def today_str() -> str:
     return datetime.datetime.now(datetime.timezone.utc).date().isoformat()
 
 
-def regressed_out_effect_cv(regressand, effect, model=skl_lm.RidgeCV()):
-    """regressed out the effect of `effect` from `regressand` in a
-    cross-validated manner"""
-    fin_idx = np.isfinite(np.column_stack([regressand, effect])).all(axis=1)
-    if not fin_idx.all():
-        warnings.warn(
-            "Encountered {} nans".format((~fin_idx).astype(int).sum())
-        )
-    preds_cv = skl_mdl_sel.cross_val_predict(
-        model,
-        X=effect[fin_idx],
-        y=regressand[fin_idx],
-        n_jobs=-1,
-        cv=5,
-    )
-    resids = np.nan * np.ones_like(regressand)
-    resids[fin_idx] = regressand[fin_idx] - preds_cv
-    return resids
-
-
-def logit_cv_auc(X, y, cv=5):
-    """AUC from the cross-validated logistic regression y~X"""
-    idx = np.isfinite(np.column_stack([X, y])).all(axis=1)
-    if (snan := sum((~idx).astype(int))) > 0:
-        warnings.warn("Dropping {} nans".format(snan))
-        X, y = X[idx], y[idx]
-    preds_cv = skl_mdl_sel.cross_val_predict(
-        skl_lm.LogisticRegressionCV(scoring="roc_auc"),
-        X=X,
-        y=y,
-        cv=cv,
-        method="predict_proba",
-        n_jobs=-1,
-    )[:, 1]
-    return skl_mets.roc_auc_score(y, preds_cv)
-
-
-def stratified_logit_cv_metrics(X, y, return_batch_aucs=False):
-    pred_col = 0.0 * y
-    batch_aucs = []
-    for train_idx, test_idx in skl_mdl_sel.StratifiedKFold(n_splits=10).split(
-        X, y
-    ):
-        pred_col[test_idx] = (
-            skl_lm.LogisticRegressionCV()
-            .fit(X=X[train_idx], y=y[train_idx])
-            .predict_proba(X[test_idx])[:, 1][:, np.newaxis]
-        )
-        batch_aucs.append(
-            skl_mets.roc_auc_score(
-                y_true=y[test_idx], y_score=pred_col[test_idx]
-            )
-        )
-    perf = {
-        "AUC": skl_mets.roc_auc_score(y_true=y, y_score=pred_col).round(4),
-        "mean batch AUC": np.mean(batch_aucs).round(4),
-        "std dev batch AUC": np.std(batch_aucs).round(4),
-        "std err of the mean": sp_stats.sem(batch_aucs).round(4),
-    }
-    return (perf, batch_aucs) if return_batch_aucs else perf
-
-
 def make_str_nice(s: str) -> str:
     """
     make the string nice
@@ -1166,36 +1147,163 @@ def format_names(n_list: list[str], elide_at: int = 42) -> list[str]:
     return [n.replace("_", " ")[:elide_at] for n in n_list]
 
 
-# run tests if called as a script
-if __name__ == "__main__":
-    import statsmodels.api as sm
+def plot_weighted_means_2d_trajectories(
+    weights: np.array,
+    values: np.array,
+    colors: list,
+    saveloc: str | os.PathLike,
+    *,
+    xlabel: str = "β-amyloid",
+    ylabel: str = "Gray matter density",
+    xlim: tuple[float, float] = (-50.0, 230.0),
+    ylim: tuple[float, float] = (-0.275, 0.025),
+    arrow_width: float = 0.6,
+    soft_assignment: bool = True,
+    cov_levels: int = 1,
+    cov_alpha: float = 0.333,
+    conf_thresh: float = 0.68,
+    elide_at: list = None,
+) -> None:
+    """
 
-    n = 1000
-    rng = np.random.default_rng(0)
-    X = rng.normal(size=n)
-    t = np.square(rng.normal(size=n))  # non-gaussian noise
-    Y = X + t
-    Y_less_t = regressed_out_effect_cv(Y.reshape(-1, 1), t.reshape(-1, 1))
+    Parameters
+    ----------
+    weights
+        (n_data × n_clusters) array of weights for calculating the
+        weighted mean and covariance
+    values
+        (n_time × n_data × 2) array of trajectories for averaging over
+    colors
+        list of colors to use
+    saveloc
+        where to save plot
+    xlabel
+        name for first value
+    ylabel
+        name for second value
+    xlim
+        2-tuple of limits for first value
+    ylim
+        2-tuple of limits for second value
+    arrow_width
+        float for controlling the size of arrows
+    soft_assignment
+        should soft assignment be used for averaging?
+    cov_levels
+        levels for covariance contours; if None, not printed
+    cov_alpha
+        alpha level for covariance contours
+    conf_thresh
+        probabilistic cutoff in (0,1) for confidence region
+    elide_at
+        list of length number of clusters, specifies the 0-based index to stop
+        printing;
 
-    r2_before_regressing_out = (
-        sm.regression.linear_model.OLS(endog=Y, exog=X).fit().rsquared
-    )
-    r2_after_regressing_out = (
-        sm.regression.linear_model.OLS(endog=Y_less_t, exog=X).fit().rsquared
-    )
+    """
+    # plot out hidden trajectories colored by cluster
+    # for training data
+    fig, ax = plt.subplots()
+    ax.set_xlim(*xlim)
+    ax.set_ylim(*ylim)
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    n_clusters = weights.shape[1]
 
-    print(f"{r2_before_regressing_out=:.2f}")
-    print(f"{r2_after_regressing_out=:.2f}")
+    for i, c in enumerate(string.ascii_uppercase[:n_clusters]):
+        prob_c = (
+            weights[:, i]
+            if soft_assignment
+            else (weights.argmax(axis=1) == i).astype(int)
+        )
+        m_c, v_c = weighted_mean_and_covariance(values, prob_c)
+        if elide_at is not None and elide_at[i] is not None:
+            m_c, v_c = m_c[: elide_at[i]], v_c[: elide_at[i]]
 
-    test_single_histogram_by_cluster = False
-    if test_single_histogram_by_cluster:
-        histograms_by_cluster(
-            metrics=rng.normal(size=n).reshape(-1, 1),
-            metric_names=[""],
-            clusters=rng.choice(list(string.ascii_uppercase[:4]), size=n),
-            nrows=1,
-            ncols=1,
-            tighten=False,
+        plt.quiver(
+            m_c[:-1, 0].ravel(),
+            m_c[:-1, 1].ravel(),
+            np.diff(m_c[:, 0]).ravel(),
+            np.diff(m_c[:, 1]).ravel(),
+            color=colors[i],
+            linestyle="solid",
+            units="xy",
+            angles="xy",
+            scale_units="xy",
+            scale=1,
+            width=arrow_width,
+            headwidth=2,
+            headlength=2,
+            headaxislength=1,
+            # zorder=-i,
+            alpha=1.0,
         )
 
-    print(f"{logit_cv_auc(X.reshape(-1, 1), (Y > 0.5).astype(int))=:.2f}")
+        plt.scatter(
+            m_c[:, 0].ravel(),
+            m_c[:, 1].ravel(),
+            c=colors[i],
+            marker=("o", "v", "^", "s", "+", "x")[i],
+            label=f"cluster {c}",
+            s=4,
+        )
+        pos = np.dstack(
+            np.meshgrid(
+                np.linspace(*ax.get_xlim(), num=1000),
+                np.linspace(*ax.get_ylim(), num=1000),
+            )
+        )
+        zval = np.stack(
+            [
+                sp_stats.multivariate_normal(mean=m_c[t], cov=v_c[t]).pdf(pos)
+                for t in range(
+                    values.shape[0]
+                    if not elide_at or not elide_at[i]
+                    else elide_at[i]
+                )
+            ],
+            axis=0,
+        ).mean(axis=0)
+
+        res = sp_opt.minimize(
+            lambda thr: np.square(
+                zval[zval >= thr].sum() / zval.sum() - conf_thresh
+            ),
+            0.9 * zval.max(),
+            method="Nelder-Mead",
+            tol=1e-6,
+        )
+
+        ax.contour(
+            pos[..., 0],
+            pos[..., 1],
+            zval,
+            colors=(
+                "#0072CE",
+                "#E87722",
+                "#64A70B",
+                "#93328E",
+                "#A81538",
+                "#4E5B31",
+            )[i],
+            linewidths=cov_levels,
+            levels=[float(res.x)],
+            alpha=cov_alpha,
+        )
+
+    handles, labels = ax.get_legend_handles_labels()
+    unique_labels_dict = dict(zip(labels, handles))
+    ax.legend(
+        unique_labels_dict.values(),
+        unique_labels_dict.keys(),
+        fontsize="large",
+        bbox_to_anchor=(1.3, 1),
+        markerscale=3,
+    )
+    ax.set_xlabel(xlabel, fontsize="large")
+    ax.set_ylabel(ylabel, fontsize="large")
+    plt.tight_layout()
+    fig.savefig(
+        saveloc,
+        bbox_inches="tight",
+        transparent=True,
+    )

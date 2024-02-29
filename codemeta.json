@@ -1,0 +1,43 @@
+{
+    "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+    "@type": "SoftwareSourceCode",
+    "license": "https://spdx.org/licenses/MIT",
+    "codeRepository": "https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling.git",
+    "dateCreated": "2023-09-21",
+    "datePublished": "2023-09-21",
+    "dateModified": "2024-02-29",
+    "name": "Unsupervised Multimodal Trajectory Modeling",
+    "version": "2024.1.1",
+    "description": "Trains mixtures of state space models with expectation maximization",
+    "developmentStatus": "concept",
+    "funder": {
+        "@type": "Organization",
+        "name": "University of Cambridge"
+    },
+    "keywords": [
+        "unsupervised clustering",
+        "trajectory clustering",
+        "mixture models",
+        "state space models",
+        "machine learning"
+    ],
+    "programmingLanguage": [
+        "Python 3"
+    ],
+    "softwareRequirements": [
+        "Python >=3.10"
+    ],
+    "author": [
+        {
+            "@type": "Person",
+            "@id": "https://orcid.org/0000-0002-2772-5840",
+            "givenName": "Michael C.",
+            "familyName": "Burkhart",
+            "email": "mcb93@cam.ac.uk",
+            "affiliation": {
+                "@type": "Organization",
+                "name": "University of Cambridge"
+            }
+        }
+    ]
+}

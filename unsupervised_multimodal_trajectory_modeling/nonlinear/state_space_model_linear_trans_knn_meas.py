@@ -13,8 +13,8 @@ import scipy.stats as sp_stats
 import sklearn.model_selection as skl_ms
 import sklearn.neighbors as skl_neighbors
 
-from . import state_space_model as ssm
 from ..util import util_state_space as util
+from . import state_space_model as ssm
 
 np_eps = np.finfo(float).eps
 
