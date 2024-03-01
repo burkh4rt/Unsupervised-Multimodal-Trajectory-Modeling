@@ -78,27 +78,3 @@ def stratified_logit_cv_metrics(
         "std err of the mean": sp_stats.sem(batch_aucs).round(4),
     }
     return batch_aucs if not return_perfs else (batch_aucs, perf)
-
-
-# run tests if called as a script
-if __name__ == "__main__":
-    import statsmodels.api as sm
-
-    n = 1000
-    rng = np.random.default_rng(0)
-    X = rng.normal(size=n)
-    t = np.square(rng.normal(size=n))  # non-gaussian noise
-    Y = X + t
-    Y_less_t = regressed_out_effect_cv(Y.reshape(-1, 1), t.reshape(-1, 1))
-
-    r2_before_regressing_out = (
-        sm.regression.linear_model.OLS(endog=Y, exog=X).fit().rsquared
-    )
-    r2_after_regressing_out = (
-        sm.regression.linear_model.OLS(endog=Y_less_t, exog=X).fit().rsquared
-    )
-
-    print(f"{r2_before_regressing_out=:.2f}")
-    print(f"{r2_after_regressing_out=:.2f}")
-
-    print(f"{logit_cv_auc(X.reshape(-1, 1), (Y > 0.5).astype(int))=:.2f}")

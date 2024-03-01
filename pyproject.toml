@@ -38,7 +38,7 @@ requires-python = ">=3.10"
 
 [project.urls]
 Homepage = "https://pypi.org/project/unsupervised-multimodal-trajectory-modeling/"
-Repository = "https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling.git"
+Repository = "https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling"
 
 [tool.isort]
 profile = "black"

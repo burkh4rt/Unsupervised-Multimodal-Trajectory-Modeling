@@ -51,9 +51,11 @@ class StateSpaceModelClassifier(
 
         jt_p = np.sum(
             np.column_stack(
-                self.propensities[i]
-                * np.exp(self.class_models[i].score(data=data))
-                for i in range(self.n_classes)
+                [
+                    self.propensities[i]
+                    * np.exp(self.class_models[i].score(data=data))
+                    for i in range(self.n_classes)
+                ]
             ),
             axis=1,
         )
@@ -69,9 +71,11 @@ class StateSpaceModelClassifier(
             data = tuple(map(np.atleast_3d, data))
 
         pc = np.column_stack(
-            self.propensities[i]
-            * np.exp(self.class_models[i].score(data=data))
-            for i in range(self.n_classes)
+            [
+                self.propensities[i]
+                * np.exp(self.class_models[i].score(data=data))
+                for i in range(self.n_classes)
+            ]
         )
         pc /= np.sum(pc, axis=1, keepdims=True)
 
@@ -90,81 +94,3 @@ class StateSpaceModelClassifier(
         preds = self.classes[np.argmax(self.predict_proba(data), axis=1)]
         assert preds.size == data[0].shape[1]
         return preds
-
-
-# run some tests if called as a script
-if __name__ == "__main__":
-    import sklearn.metrics as skl_metrics
-    import state_space_model_linear_gaussian as ssm_lg
-    from framework.linear_gaussian import (
-        marginalizable_state_space_model as mssm,
-    )
-
-    rng = np.random.default_rng(0)
-
-    n_clusters = 2
-    n_timesteps = 25
-    n_data = 100
-    d_hidden = 2
-    d_observed = 3
-    cluster_propensities = np.array([0.4, 0.6])
-
-    # form model parameters
-    A = np.empty(shape=(n_clusters, d_hidden, d_hidden))
-    Γ = np.empty(shape=(n_clusters, d_hidden, d_hidden))
-    H = np.empty(shape=(n_clusters, d_hidden, d_observed))
-    Λ = np.empty(shape=(n_clusters, d_observed, d_observed))
-
-    for c in range(n_clusters):
-        A[c] = rng.normal(scale=0.5, size=(d_hidden, d_hidden))
-        Γ[c] = np.eye(d_hidden) / (c + 2.0)
-        H[c] = rng.normal(size=(d_hidden, d_observed))
-        Λ[c] = (c + 1.0) * np.eye(d_observed)
-
-    # generate data according to model
-    z = np.empty(shape=(n_timesteps, n_data, d_hidden))
-    x = np.empty(shape=(n_timesteps, n_data, d_observed))
-    c = np.empty(shape=(n_data,), dtype=int)
-
-    for i in range(n_data):
-        c[i] = rng.choice(np.arange(n_clusters), p=cluster_propensities)
-        z[:, i, :], x[:, i, :] = map(
-            np.squeeze,
-            mssm.sample_trajectory(
-                1,
-                n_timesteps,
-                np.zeros(shape=(d_hidden)),
-                Γ[c[i]],
-                A[c[i]],
-                Γ[c[i]],
-                H[c[i]],
-                Λ[c[i]],
-            ),
-        )
-
-    clr = StateSpaceModelClassifier(
-        component_model=ssm_lg.StateSpaceLinearGaussian
-    ).fit(data=(z, x), labels=c)
-
-    print(f"{clr.score()=:.2f}")
-    # clr.score()=-17039.91
-
-    print(
-        skl_metrics.confusion_matrix(
-            c,
-            clr.predict(),
-        )
-    )
-
-    z[int(n_timesteps / 2) :, int(n_data / 2) :] = np.nan
-    x[int(n_timesteps / 2) :, int(n_data / 2) :] = np.nan
-    clr2 = StateSpaceModelClassifier(
-        component_model=ssm_lg.StateSpaceLinearGaussian
-    ).fit(data=(z, x), labels=c)
-
-    print(
-        skl_metrics.confusion_matrix(
-            c,
-            clr2.predict(),
-        )
-    )

@@ -606,10 +606,12 @@ class MMLinGaussSS_marginalizable:
             states=states, observations=observations
         )
         conditional_log_likelihoods = np.column_stack(
-            self.conditional_log_likelihoods(
-                c, states=states, observations=observations
-            )
-            for c in range(self.n_clusters)
+            [
+                self.conditional_log_likelihoods(
+                    c, states=states, observations=observations
+                )
+                for c in range(self.n_clusters)
+            ]
         )
 
         return np.sum(

@@ -24,9 +24,6 @@
     "programmingLanguage": [
         "Python 3"
     ],
-    "softwareRequirements": [
-        "Python >=3.10"
-    ],
     "author": [
         {
             "@type": "Person",

@@ -1,7 +1,6 @@
 # Unsupervised Multimodal Trajectory Modeling
 
 [![DOI](https://zenodo.org/badge/692068384.svg)](https://zenodo.org/badge/latestdoi/692068384)
-[![SWH](https://archive.softwareheritage.org/badge/swh:1:dir:a9123caa1e7aaa7bdce9acd01c9bf9dffcfb056b/)](https://archive.softwareheritage.org/swh:1:dir:a9123caa1e7aaa7bdce9acd01c9bf9dffcfb056b;origin=https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling;visit=swh:1:snp:1c1b2d843e04305784c721ad41ca490b195c0274;anchor=swh:1:rev:3f6f6b11ee8bea55c0882f3e84f3c8ddef6a5bc1)
 
 We propose and validate a mixture of state space models to perform unsupervised
 clustering of short trajectories. Within the state space framework, we let
@@ -39,6 +38,12 @@ standardising to the longest available trajectory in a dataset and appending
 ### Model specification
 
 We adopt a mixture of state space models for the data:
+
+<img src="figure1.png" 
+    alt="plate notation for mixture of state space models" 
+    style="max-width:700px;width:100%">
+
+given explicitly by:
 
 $$
 p(z^i_{1:T}, x^i_{1:T})
