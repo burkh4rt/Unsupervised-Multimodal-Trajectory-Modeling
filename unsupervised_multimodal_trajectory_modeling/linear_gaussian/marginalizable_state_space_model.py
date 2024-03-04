@@ -310,7 +310,7 @@ def mmZ(T: int, m: np.array, A: np.array) -> np.array:
 
     """
     return np.hstack(
-        (m @ np.linalg.matrix_power(A, i) for i in range(T))
+        [m @ np.linalg.matrix_power(A, i) for i in range(T)]
     ).ravel()
 
 

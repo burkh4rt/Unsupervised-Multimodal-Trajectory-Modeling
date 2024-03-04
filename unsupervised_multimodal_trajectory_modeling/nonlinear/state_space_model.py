@@ -30,11 +30,9 @@ class StateSpaceModel(
 
     def fit(self, data: tuple[np.ndarray, np.ndarray]):
         """fits the model on the data"""
-        pass
 
     def score(self, data: tuple[np.ndarray, np.ndarray]):
         """provides overall score for the model on data"""
-        pass
 
     @property
     def n_params(self):

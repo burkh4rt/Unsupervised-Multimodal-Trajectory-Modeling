@@ -6,10 +6,8 @@ Utility functions for state-space modeling
 """
 
 import datetime
-import gzip
 import itertools
 import os
-import pickle
 import re
 import string
 
@@ -464,8 +462,12 @@ def weighted_mean_and_covariance(values: np.array, weights: np.array):
     assert (weights >= 0).all()
 
     # weighted mean
-    m_c_num = np.einsum("ijk,j->ik", np.nan_to_num(values), weights)
-    m_c_denom = np.einsum("ijk,j->ik", np.isfinite(values), weights)
+    m_c_num = np.einsum(
+        "ijk,j->ik", np.nan_to_num(values), weights, optimize=True
+    )
+    m_c_denom = np.einsum(
+        "ijk,j->ik", np.isfinite(values), weights, optimize=True
+    )
     m_c = m_c_num / m_c_denom
 
     # weighted covariance
@@ -475,12 +477,14 @@ def weighted_mean_and_covariance(values: np.array, weights: np.array):
         np.nan_to_num(v_centered),
         weights,
         np.nan_to_num(v_centered),
+        optimize=True,
     )
     v_c_denom = np.einsum(
         "ijk,j,ijl->ikl",
         np.isfinite(v_centered),
         weights,
         np.isfinite(v_centered),
+        optimize=True,
     )
     v_c = v_c_num / v_c_denom
 
@@ -1159,8 +1163,7 @@ def plot_weighted_means_2d_trajectories(
     ylim: tuple[float, float] = (-0.275, 0.025),
     arrow_width: float = 0.6,
     soft_assignment: bool = True,
-    cov_levels: int = 1,
-    cov_alpha: float = 0.333,
+    cov_alpha: float = 0.05,
     conf_thresh: float = 0.68,
     elide_at: list = None,
 ) -> None:
@@ -1216,6 +1219,7 @@ def plot_weighted_means_2d_trajectories(
             else (weights.argmax(axis=1) == i).astype(int)
         )
         m_c, v_c = weighted_mean_and_covariance(values, prob_c)
+
         if elide_at is not None and elide_at[i] is not None:
             m_c, v_c = m_c[: elide_at[i]], v_c[: elide_at[i]]
 
@@ -1252,43 +1256,37 @@ def plot_weighted_means_2d_trajectories(
                 np.linspace(*ax.get_ylim(), num=1000),
             )
         )
-        zval = np.stack(
-            [
-                sp_stats.multivariate_normal(mean=m_c[t], cov=v_c[t]).pdf(pos)
-                for t in range(
-                    values.shape[0]
-                    if not elide_at or not elide_at[i]
-                    else elide_at[i]
-                )
-            ],
-            axis=0,
-        ).mean(axis=0)
 
-        res = sp_opt.minimize(
-            lambda thr: np.square(
-                zval[zval >= thr].sum() / zval.sum() - conf_thresh
-            ),
-            0.9 * zval.max(),
-            method="Nelder-Mead",
-            tol=1e-6,
-        )
-
-        ax.contour(
-            pos[..., 0],
-            pos[..., 1],
-            zval,
-            colors=(
-                "#0072CE",
-                "#E87722",
-                "#64A70B",
-                "#93328E",
-                "#A81538",
-                "#4E5B31",
-            )[i],
-            linewidths=cov_levels,
-            levels=[float(res.x)],
-            alpha=cov_alpha,
-        )
+        for t in range(
+            values.shape[0] if not elide_at or not elide_at[i] else elide_at[i]
+        ):
+            zval = sp_stats.multivariate_normal(mean=m_c[t], cov=v_c[t]).pdf(
+                pos
+            )
+            res = sp_opt.minimize(
+                lambda thr: np.square(
+                    zval[zval >= thr].sum() / zval.sum() - conf_thresh
+                ),
+                0.9 * zval.max(),
+                method="Nelder-Mead",
+                tol=1e-6,
+            )
+            ax.contourf(
+                pos[..., 0],
+                pos[..., 1],
+                zval,
+                colors=(
+                    "#0072CE",
+                    "#E87722",
+                    "#64A70B",
+                    "#93328E",
+                    "#A81538",
+                    "#4E5B31",
+                )[i],
+                linewidths=1,
+                levels=[float(res.x), np.inf],
+                alpha=cov_alpha,
+            )
 
     handles, labels = ax.get_legend_handles_labels()
     unique_labels_dict = dict(zip(labels, handles))

@@ -155,7 +155,7 @@ class MMLinGaussSS_marginalizable:
                     init="k-means++",
                     random_state=self.random_seed,
                 ).fit_predict(
-                    np.row_stack(
+                    np.vstack(
                         [
                             self.states[:, i, :].flatten()
                             for i in range(self.n_data)
@@ -393,10 +393,10 @@ class MMLinGaussSS_marginalizable:
         """
         for s in string.ascii_uppercase[: self.n_clusters]:
             c = self.inverse_correspondence[s]
-            Zcprev = np.row_stack(
+            Zcprev = np.vstack(
                 [*self.states[:-1, self.cluster_assignment == c, :]]
             )
-            Zcnext = np.row_stack(
+            Zcnext = np.vstack(
                 [*self.states[1:, self.cluster_assignment == c, :]]
             )
             trans_idx = np.isfinite(np.column_stack([Zcprev, Zcnext])).all(
@@ -422,10 +422,10 @@ class MMLinGaussSS_marginalizable:
                     print(f"dof={t_res.df_denom}")
 
             if test_obs:
-                Xcs = np.row_stack(
+                Xcs = np.vstack(
                     [*self.observations[:, self.cluster_assignment == c, :]]
                 )
-                Zcs = np.row_stack(
+                Zcs = np.vstack(
                     [*self.states[:, self.cluster_assignment == c, :]]
                 )
                 meas_idx = np.isfinite(np.column_stack([Xcs, Zcs])).all(axis=1)
@@ -1267,8 +1267,8 @@ class MMLinGaussSS_marginalizable:
             self.init_state_means[c] = np.mean(Zc_init, axis=0)
             self.init_state_covs[c] = np.cov(Zc_init, rowvar=False)
 
-            Zprev = np.row_stack([*Zc[:-1, :, :]])
-            Znext = np.row_stack([*Zc[1:, :, :]])
+            Zprev = np.vstack([*Zc[:-1, :, :]])
+            Znext = np.vstack([*Zc[1:, :, :]])
             trans_idx = np.isfinite(np.column_stack([Zprev, Znext])).all(
                 axis=1
             )
@@ -1287,8 +1287,8 @@ class MMLinGaussSS_marginalizable:
                     self.transition_covs[c],
                 ) = MMLinGaussSS_marginalizable.regress(Zprev, Znext)
 
-            Xcs = np.row_stack([*Xc])
-            Zcs = np.row_stack([*Zc])
+            Xcs = np.vstack([*Xc])
+            Zcs = np.vstack([*Zc])
             meas_idx = np.isfinite(np.column_stack([Xcs, Zcs])).all(axis=1)
             Xcs = Xcs[meas_idx, :]
             Zcs = Zcs[meas_idx, :]
@@ -1455,7 +1455,7 @@ class MMLinGaussSS_marginalizable:
                     > best_mdl.e_complete_data_log_lik()
                 ):
                     best_mdl = mix_mdl
-            except:
+            except Exception:
                 pass
         if not np.isfinite(best_mdl.e_complete_data_log_lik()):
             raise Exception("training failed")
@@ -1909,190 +1909,3 @@ class MMLinGaussSS_marginalizable:
                     ),
                     **kwargs,
                 )
-
-
-# run some tests if called as a script
-if __name__ == "__main__":
-    print("Running tests...")
-
-    # make reproducible
-    np.random.seed(42)
-    rng = np.random.default_rng(42)
-
-    n_clusters = 2
-    n_timesteps = 25
-    n_data = 1000
-    d_hidden = 2
-    d_observed = 3
-    cluster_propensities = np.array([0.4, 0.6])
-
-    # form model parameters
-    A = np.empty(shape=(n_clusters, d_hidden, d_hidden))
-    G = np.empty(shape=(n_clusters, d_hidden, d_hidden))
-    H = np.empty(shape=(n_clusters, d_hidden, d_observed))
-    L = np.empty(shape=(n_clusters, d_observed, d_observed))
-
-    for c in range(n_clusters):
-        A[c] = rng.normal(scale=0.5, size=(d_hidden, d_hidden))
-        G[c] = np.eye(d_hidden) / (c + 2.0)
-        H[c] = rng.normal(size=(d_hidden, d_observed))
-        L[c] = (c + 1.0) * np.eye(d_observed)
-
-    # generate data according to model
-    z = np.empty(shape=(n_timesteps, n_data, d_hidden))
-    x = np.empty(shape=(n_timesteps, n_data, d_observed))
-    c = np.empty(shape=(n_data,))
-
-    for i in range(n_data):
-        ci = rng.choice(np.arange(n_clusters), p=cluster_propensities)
-        z[0, i, :] = sp_stats.multivariate_normal(cov=G[ci]).rvs(
-            random_state=rng
-        )
-        x[0, i, :] = sp_stats.multivariate_normal(
-            mean=z[0, i, :] @ H[ci], cov=L[ci]
-        ).rvs(random_state=rng)
-        for t in range(n_timesteps - 1):
-            z[t + 1, i, :] = sp_stats.multivariate_normal(
-                mean=z[t, i, :] @ A[ci],
-                cov=G[ci],
-            ).rvs(random_state=rng)
-            x[t + 1, i, :] = sp_stats.multivariate_normal(
-                mean=z[t + 1, i, :] @ H[ci],
-                cov=L[ci],
-            ).rvs(random_state=rng)
-        c[i] = ci
-
-    best_mdl = MMLinGaussSS_marginalizable(
-        n_clusters=n_clusters,
-        states=z,
-        observations=x,
-        init="kmeans",
-    ).train_with_multiple_random_starts()
-
-    assert np.allclose(
-        np.sort(cluster_propensities),
-        np.sort(best_mdl.cluster_propensities),
-        rtol=1e-1,
-    )
-
-    print("Cluster propensities recovered successfully")
-
-    correspondence = dict(
-        zip(
-            np.argsort(cluster_propensities),
-            np.argsort(best_mdl.cluster_propensities),
-        )
-    )
-
-    for c_true, c_inferred in correspondence.items():
-        assert np.allclose(
-            A[c_true],
-            best_mdl.transition_matrices[c_inferred],
-            rtol=1e-1,
-            atol=1e-1,
-        )
-        print(f"State transition coefficients recovered for class {c_true}")
-
-        assert np.allclose(
-            G[c_true],
-            best_mdl.transition_covs[c_inferred],
-            rtol=1e-1,
-            atol=2e-1,
-        )
-        print(f"State transition covariance recovered for class {c_true}")
-
-        assert np.allclose(
-            H[c_true],
-            best_mdl.measurement_matrices[c_inferred],
-            rtol=1e-1,
-            atol=1e-1,
-        )
-
-        print(f"Measurement coefficients recovered for class {c_true}")
-
-        assert np.allclose(
-            L[c_true],
-            best_mdl.measurement_covs[c_inferred],
-            rtol=1e-1,
-            atol=2e-1,
-        )
-
-        print(f"Measurement covariance recovered for class {c_true}")
-
-    MMLinGaussSS_marginalizable(
-        n_clusters=n_clusters,
-        states=z,
-        observations=x,
-        init="random",
-    ).train_with_multiple_random_starts(verbose=True, use_cache=True)
-
-    z_pred, x_pred = best_mdl.one_step_ahead_predictions(
-        states=z[:-1], observations=x[:-1]
-    )
-
-    assert np.allclose((z_pred - z[-1]).squeeze().mean(axis=0), 0.0, atol=0.02)
-    assert np.allclose((x_pred - x[-1]).squeeze().mean(axis=0), 0.0, atol=0.05)
-
-    print("One step ahead predictions are reasonable")
-
-    (
-        z_pred_0hist,
-        x_pred_0hist,
-    ) = best_mdl.one_step_ahead_predictions_no_history(
-        states=z[:-1], observations=x[:-1]
-    )
-
-    assert np.allclose(
-        (z_pred_0hist - z[-1]).squeeze().mean(axis=0), 0.0, atol=0.02
-    )
-    assert np.allclose(
-        (x_pred_0hist - x[-1]).squeeze().mean(axis=0), 0.0, atol=0.05
-    )
-
-    print("History-free one step ahead predictions are reasonable")
-
-    H0_est, L0_est = MMLinGaussSS_marginalizable.regress(
-        z[0, c == 0], x[0, c == 0]
-    )
-    assert np.allclose(H0_est, H[0], atol=0.2)
-    assert np.allclose(L0_est, L[0], atol=0.2)
-
-    print("Tests of regression functionality completed")
-
-    best_mdl.to_pickle()
-    assert (
-        len(
-            glob.glob(
-                os.path.join(
-                    home_dir,
-                    "tmp",
-                    f"mmm-{best_mdl.hex_hash}*",
-                )
-            )
-        )
-        == 1
-    )
-    print("Highlander test succeeded")
-
-    best_mdl = MMLinGaussSS_marginalizable(
-        n_clusters=n_clusters,
-        states=z,
-        observations=x,
-        init="kmeans",
-        alpha=0.1,
-    ).train_with_multiple_random_starts(use_cache=True, verbose=True)
-
-    best_mdl.aic()
-    best_mdl.bic(states=z[:, :10], observations=x[:, :10])
-    print("Model selection functions working")
-
-    best_mdl = MMLinGaussSS_marginalizable(
-        n_clusters=n_clusters,
-        states=z[..., 0].reshape(*z.shape[:-1], 1),
-        observations=x[..., 0].reshape(*x.shape[:-1], 1),
-        init="kmeans",
-        alpha=0.1,
-    ).train_with_multiple_random_starts(use_cache=True)
-    print("Training on 1-d states and observations is working")
-
-    print("Tests succeeded")

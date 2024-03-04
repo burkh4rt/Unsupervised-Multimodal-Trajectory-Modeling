@@ -51,13 +51,13 @@ class StateSpaceLinearGaussian(ssm.StateSpaceModel):
             zip(
                 ["coeff", "covar"],
                 util.regress_alpha(
-                    np.row_stack(states[:-1]),
-                    np.row_stack(states[1:]),
+                    np.vstack(states[:-1]),
+                    np.vstack(states[1:]),
                     self.alpha,
                 )
                 if self.alpha > 2 * np_eps
                 else util.regress(
-                    np.row_stack(states[:-1]), np.row_stack(states[1:])
+                    np.vstack(states[:-1]), np.vstack(states[1:])
                 ),
             )
         )
@@ -65,13 +65,13 @@ class StateSpaceLinearGaussian(ssm.StateSpaceModel):
             zip(
                 ["coeff", "covar"],
                 util.regress_alpha(
-                    np.row_stack(states[:]),
-                    np.row_stack(measurements[:]),
+                    np.vstack(states[:]),
+                    np.vstack(measurements[:]),
                     self.alpha,
                 )
                 if self.alpha > 2 * np_eps
                 else util.regress(
-                    np.row_stack(states[:]), np.row_stack(measurements[:])
+                    np.vstack(states[:]), np.vstack(measurements[:])
                 ),
             )
         )

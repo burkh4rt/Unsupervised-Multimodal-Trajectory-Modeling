@@ -230,7 +230,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
                     init="k-means++",
                     random_state=0,
                 ).fit_predict(
-                    np.row_stack(
+                    np.vstack(
                         [
                             self.states[:, i, :].flatten()
                             for i in range(self.n_data)

@@ -55,8 +55,8 @@ class StateSpaceKNN(ssm.StateSpaceModel):
             ),
         }
 
-        outp = np.row_stack(states[1:])
-        inp = np.row_stack(states[:-1])
+        outp = np.vstack(states[1:])
+        inp = np.vstack(states[:-1])
         trans_idx = np.isfinite(np.column_stack([inp, outp])).all(axis=1)
         trans_mdl = skl_ms.GridSearchCV(
             skl_neighbors.KNeighborsRegressor(),
@@ -77,8 +77,8 @@ class StateSpaceKNN(ssm.StateSpaceModel):
             "cov": np.cov(outp[trans_idx] - trans_inf, rowvar=False),
         }
 
-        outp = np.row_stack(measurements[:])
-        inp = np.row_stack(states[:])
+        outp = np.vstack(measurements[:])
+        inp = np.vstack(states[:])
         meas_idx = np.isfinite(np.column_stack([inp, outp])).all(axis=1)
         out_mdl = skl_ms.GridSearchCV(
             skl_neighbors.KNeighborsRegressor(),
