@@ -213,9 +213,9 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
                         "Model found in cache does not match our "
                         "requirements."
                     )
-            except AttributeError:
+            except Exception as err:
                 if verbose:
-                    print("Issue loading cached model.")
+                    print(f"Issue loading cached model -- encountered {err}")
 
         match init:
             case "k-means" | "kmeans":
@@ -230,7 +230,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
                     init="k-means++",
                     random_state=0,
                 ).fit_predict(
-                    np.vstack(
+                    np.row_stack(
                         [
                             self.states[:, i, :].flatten()
                             for i in range(self.n_data)

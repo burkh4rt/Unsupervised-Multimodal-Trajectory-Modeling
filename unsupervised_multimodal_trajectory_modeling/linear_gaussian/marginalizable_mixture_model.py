@@ -155,7 +155,7 @@ class MMLinGaussSS_marginalizable:
                     init="k-means++",
                     random_state=self.random_seed,
                 ).fit_predict(
-                    np.vstack(
+                    np.row_stack(
                         [
                             self.states[:, i, :].flatten()
                             for i in range(self.n_data)
@@ -393,10 +393,10 @@ class MMLinGaussSS_marginalizable:
         """
         for s in string.ascii_uppercase[: self.n_clusters]:
             c = self.inverse_correspondence[s]
-            Zcprev = np.vstack(
+            Zcprev = np.row_stack(
                 [*self.states[:-1, self.cluster_assignment == c, :]]
             )
-            Zcnext = np.vstack(
+            Zcnext = np.row_stack(
                 [*self.states[1:, self.cluster_assignment == c, :]]
             )
             trans_idx = np.isfinite(np.column_stack([Zcprev, Zcnext])).all(
@@ -422,10 +422,10 @@ class MMLinGaussSS_marginalizable:
                     print(f"dof={t_res.df_denom}")
 
             if test_obs:
-                Xcs = np.vstack(
+                Xcs = np.row_stack(
                     [*self.observations[:, self.cluster_assignment == c, :]]
                 )
-                Zcs = np.vstack(
+                Zcs = np.row_stack(
                     [*self.states[:, self.cluster_assignment == c, :]]
                 )
                 meas_idx = np.isfinite(np.column_stack([Xcs, Zcs])).all(axis=1)
@@ -1267,8 +1267,8 @@ class MMLinGaussSS_marginalizable:
             self.init_state_means[c] = np.mean(Zc_init, axis=0)
             self.init_state_covs[c] = np.cov(Zc_init, rowvar=False)
 
-            Zprev = np.vstack([*Zc[:-1, :, :]])
-            Znext = np.vstack([*Zc[1:, :, :]])
+            Zprev = np.row_stack([*Zc[:-1, :, :]])
+            Znext = np.row_stack([*Zc[1:, :, :]])
             trans_idx = np.isfinite(np.column_stack([Zprev, Znext])).all(
                 axis=1
             )
@@ -1287,8 +1287,8 @@ class MMLinGaussSS_marginalizable:
                     self.transition_covs[c],
                 ) = MMLinGaussSS_marginalizable.regress(Zprev, Znext)
 
-            Xcs = np.vstack([*Xc])
-            Zcs = np.vstack([*Zc])
+            Xcs = np.row_stack([*Xc])
+            Zcs = np.row_stack([*Zc])
             meas_idx = np.isfinite(np.column_stack([Xcs, Zcs])).all(axis=1)
             Xcs = Xcs[meas_idx, :]
             Zcs = Zcs[meas_idx, :]
@@ -1421,6 +1421,9 @@ class MMLinGaussSS_marginalizable:
             except IndexError:
                 if verbose:
                     print("No model found in cache.")
+            except Exception as err:
+                if verbose:
+                    print(f"Issue loading cached model -- encountered {err}")
 
         best_mdl = MMLinGaussSS_marginalizable(
             n_clusters=self.n_clusters,

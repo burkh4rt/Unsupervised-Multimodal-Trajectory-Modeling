@@ -5,9 +5,9 @@
     "codeRepository": "https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling.git",
     "dateCreated": "2023-09-21",
     "datePublished": "2023-09-21",
-    "dateModified": "2024-02-29",
+    "dateModified": "2024-03-13",
     "name": "Unsupervised Multimodal Trajectory Modeling",
-    "version": "2024.1.1",
+    "version": "2024.2.1",
     "description": "Trains mixtures of state space models with expectation maximization",
     "developmentStatus": "concept",
     "funder": {
