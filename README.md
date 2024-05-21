@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/692068384.svg)](https://zenodo.org/badge/latestdoi/692068384)
 
 We propose and validate a mixture of state space models to perform unsupervised
-clustering of short trajectories. Within the state space framework, we let
+clustering of short trajectories[^1]. Within the state space framework, we let
 expensive-to-gather biomarkers correspond to hidden states and readily
 obtainable cognitive metrics correspond to measurements. Upon training with
 expectation maximization, we find that our clusters stratify persons according
@@ -39,17 +39,11 @@ standardising to the longest available trajectory in a dataset and appending
 
 We adopt a mixture of state space models for the data:
 
-<img src="figure1.png" 
-    alt="plate notation for mixture of state space models" 
-    style="max-width:700px;width:100%">
-
-given explicitly by:
-
 $$
 p(z^i_{1:T}, x^i_{1:T})
 		= \sum_{c=1}^{n_c} \pi_{c} \delta_{ \\{c=c^i \\} }
     \bigg( p(z_1^i| c)  \prod_{t=2}^T p(z_t^i | z_{t-1}^i, c)
-    \prod_{t=1}^T p(x_t^i | z_t^i, c) \bigg)
+    \prod_{t=1}^T p(x_t^i | z_t^i, c) \bigg).
 $$
 
 Each individual $i$ is independently assigned to some cluster $c^i$ with
@@ -64,7 +58,7 @@ for each cluster, i.e. they are independent of $t$. In particular, for a given
 individual, the relationship between the state and measurement should not
 change over time.
 
-In our main framework, inspired by the work of Chiappa and Barber[^1], we
+In our main framework, inspired by the work of Chiappa and Barber[^2], we
 additionally assume that the cluster-specific state initialisation is Gaussian,
 i.e. $p(z_1^i| c) = \eta_d(z_1^i; m_c, S_c)$, and the cluster-specific state
 and measurement models are linear Gaussian, i.e.
@@ -87,7 +81,7 @@ In particular, we assume that the variables we are modeling are continuous and
 changing over time. When we train a model like the above, we take a dataset
 $\mathcal{D}$ and an arbitrary set of cluster assignments $c^i$ (as these are
 also latent/ hidden from us) and iteratively perform M and E steps (from which
-EM[^2] gets its name):
+EM[^3] gets its name):
 
 - [**E**] Expectation step: given the current model, we assign each data
   instance $(z^i_{1:T}, x^i_{1:T})$ to the cluster to which it is mostly likely
@@ -128,14 +122,19 @@ Another assumption that is easy-to-violate is our stationarity assumption for
 the measurement model.
 
 [^1]:
-    S. Chiappa and D. Barber. _Dirichlet Mixtures of Bayesian Linear Gaussian
-    State-Space Models: a Variational Approach._ Tech. rep. 161. Max Planck
-    Institute for Biological Cybernetics, 2007.
+    M. Burkhart, L. Lee, D. Vaghari, A. Toh, E. Chong, C. Chen, P. Tiňo, and Z.
+    Kourtzi, _Unsupervised multimodal modeling of cognitive and brain health
+    trajectories for early dementia prediction,_ Sci. Rep. 14 (2024)
 
 [^2]:
-    A. Dempster, N. Laird, and D. B. Rubin. _Maximum Likelihood from  
+    S. Chiappa and D. Barber, _Dirichlet Mixtures of Bayesian Linear Gaussian
+    State-Space Models: a Variational Approach,_ Tech. rep. 161, Max Planck
+    Institute for Biological Cybernetics, 2007.
+
+[^3]:
+    A. Dempster, N. Laird, and D. Rubin. _Maximum Likelihood from  
     Incomplete Data via the EM Algorithm._ J. Roy. Stat. Soc. Ser. B (Stat.
-    Methodol.) 39.1 (1977), pp. 1–38.
+    Methodol.) 39 (1977).
 
 <!--
 rm dist/*
@@ -143,6 +142,6 @@ isort --profile black .
 black .
 prettier --write --print-width 79 --prose-wrap always **/*.md
 python3 -m build
-twine upload -s  -r pypi dist/*
 # twine upload -r testpypi dist/*
+twine upload -s  -r pypi dist/*
 -->

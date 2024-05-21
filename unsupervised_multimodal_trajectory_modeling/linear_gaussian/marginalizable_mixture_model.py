@@ -617,8 +617,10 @@ class MMLinGaussSS_marginalizable:
         return np.sum(
             np.log(self.cluster_propensities[cluster_assignment])
         ) + np.sum(
-            conditional_log_likelihoods[i, cluster_assignment[i]]
-            for i in range(cluster_assignment.size)
+            [
+                conditional_log_likelihoods[i, cluster_assignment[i]]
+                for i in range(cluster_assignment.size)
+            ]
         )
 
     def model_log_likelihood(
@@ -1330,7 +1332,7 @@ class MMLinGaussSS_marginalizable:
             <= 3
         ):
             if verbose:
-                print(f"Encountered near-empty cluster.")
+                print("Encountered near-empty cluster.")
             return self
         self.M_step()
         if verbose:
@@ -1350,7 +1352,7 @@ class MMLinGaussSS_marginalizable:
                 <= 3
             ):
                 if verbose:
-                    print(f"Encountered near-empty cluster.")
+                    print("Encountered near-empty cluster.")
                 break
             self.M_step()
             if verbose:
@@ -1370,7 +1372,7 @@ class MMLinGaussSS_marginalizable:
         verbose: bool = False,
         n_steps: int = 100,
         return_objectives: bool = False,
-        use_cache: bool = False,
+        use_cache: bool = True,
     ):
         """train n_starts models from random initialisations
 
