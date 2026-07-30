@@ -209,7 +209,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
                 self.cluster_assignment = skl_cluster.KMeans(
                     n_clusters=self.n_clusters, init="k-means++", random_state=0
                 ).fit_predict(
-                    np.row_stack(
+                    np.vstack(
                         [self.states[:, i, :].flatten() for i in range(self.n_data)]
                     )
                 )
@@ -318,7 +318,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
             )
 
     @staticmethod
-    def from_pickle(file: str | os.PathLike, training_data: dict = None):
+    def from_pickle(file: str | os.PathLike, training_data=None):
         with (
             gzip.open(file, "rb")
             if os.path.splitext(file)[-1] == ".gz"
@@ -356,11 +356,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
             mdl.last_trained = mdl_dict["last_trained"]
             return mdl
 
-    def predict_proba(
-        self,
-        data: tuple[np.ndarray, np.ndarray] = None,
-        return_prenormalized_log_probs: bool = False,
-    ):
+    def predict_proba(self, data=None, return_prenormalized_log_probs: bool = False):
         if data is None:
             data = self.data
 
@@ -384,9 +380,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
         else:
             return preds
 
-    def predict(
-        self, *, data: tuple[np.ndarray, np.ndarray] = None, letters: bool = True
-    ) -> np.ndarray:
+    def predict(self, *, data=None, letters: bool = True) -> np.ndarray:
         preds = np.argmax(self.predict_proba(data=data), axis=1)
 
         if letters:
@@ -394,7 +388,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
         else:
             return preds
 
-    def score(self, data: tuple[np.ndarray, np.ndarray] = None) -> float:
+    def score(self, data=None) -> float:
         if data is None:
             data = self.data
 
@@ -420,7 +414,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
             )
         )
 
-    def model_log_likelihood(self, data: tuple[np.ndarray, np.ndarray] = None) -> float:
+    def model_log_likelihood(self, data=None) -> float:
         if data is None:
             data = self.data
 
@@ -441,9 +435,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
             )
         )
 
-    def cluster_assignment_index(
-        self, *, cluster: str = "A", data: tuple[np.ndarray, np.ndarray] = None
-    ) -> np.ndarray:
+    def cluster_assignment_index(self, *, cluster: str = "A", data=None) -> np.ndarray:
         """Return pre-normalized log-odds of assignment to cluster `cluster`"""
 
         return self.predict_proba(data=data, return_prenormalized_log_probs=True)[-1][

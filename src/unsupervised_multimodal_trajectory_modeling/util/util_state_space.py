@@ -126,12 +126,7 @@ def nancat(arr1: np.ndarray, arr2: np.ndarray) -> np.ndarray:
     return np.concatenate([arr1_cat, arr2_cat], axis=1)
 
 
-def standardize(
-    arr: np.ndarray,
-    *,
-    params: dict[str, np.ndarray] = None,
-    return_params: bool = False,
-):
+def standardize(arr: np.ndarray, *, params=None, return_params: bool = False):
     """standardize array elements to [0.1, 1] along the 3rd axis
 
     Parameters
@@ -256,7 +251,7 @@ def normalize(
     arr: np.ndarray,
     eps: float = np.finfo(float).eps,
     *,
-    params: dict[str, np.ndarray] = None,
+    params=None,
     return_params: bool = False,
 ):
     """normalize array elements to have mean 0 & stddev ~1 along the 3rd axis
@@ -473,11 +468,11 @@ def plot_metric_vs_clusters_over_time(
     *,
     savename: str | os.PathLike,
     title: str,
-    xticks: np.ndarray = None,
+    xticks=None,
     xlabel: str = "Time steps",
-    xlim: tuple = None,
-    ylim: tuple = None,
-    legend_loc: str = None,
+    xlim=None,
+    ylim=None,
+    legend_loc=None,
     legend_bbox_to_anchor=(1.5, 1),
     colors: tuple = ("#0072CE", "#E87722", "#64A70B", "#93328E", "#A81538", "#4E5B31"),
     show: bool = False,
@@ -540,17 +535,17 @@ def plot_metric_vs_clusters_over_time(
     ax.set_ylabel(metric_name, fontsize="large")
     plt.savefig(savename, bbox_inches="tight", transparent=True)
     if show:
-        plt.show(bbox_inches="tight")
+        plt.show()
 
 
 def histograms_by_cluster(
     *,
     savename: str | os.PathLike = "",
     title: str = "Histograms by cluster",
-    metrics: np.ndarray = None,
-    metric_names: list = None,
-    clusters: np.ndarray = None,
-    cluster_ordering: np.ndarray = None,
+    metrics=None,
+    metric_names=None,
+    clusters=None,
+    cluster_ordering=None,
     show: bool = False,
     nrows: int = 2,
     ncols: int = 3,
@@ -696,15 +691,15 @@ def histograms_by_cluster(
     if len(savename) > 0:
         fig.savefig(savename, bbox_inches="tight", transparent=True)
     if show:
-        plt.show(bbox_inches="tight")
+        plt.show()
 
 
 def histogram(
-    metrics: np.ndarray = None,
+    metrics=None,
     *,
     savename: str | os.PathLike = "",
     show: bool = False,
-    title: str = None,
+    title=None,
     density: bool = True,
     nbins: int = 25,
     figsize: tuple = (6.4, 4.8),
@@ -746,19 +741,19 @@ def pies_by_cluster(
     *,
     savename: str | os.PathLike = "",
     title: str = "",
-    categories: np.ndarray = None,
-    category_ordering: np.ndarray = None,
-    category_legend_names: dict = None,
-    clusters: np.ndarray = None,
-    cluster_ordering: np.ndarray = None,
+    categories=None,
+    category_ordering=None,
+    category_legend_names=None,
+    clusters=None,
+    cluster_ordering=None,
     show: bool = False,
-    nrows: int = None,
-    ncols: int = None,
-    slice_colors: tuple[str, ...] = None,
+    nrows=None,
+    ncols=None,
+    slice_colors=None,
     legend_bbox_to_anchor=(0.0, 0.0),
-    fig_length: float = None,
-    fig_width: float = None,
-    halo_colors: tuple[str, ...] = None,
+    fig_length=None,
+    fig_width=None,
+    halo_colors=None,
 ) -> None:
     """creates subplots of pie charts
 
@@ -862,15 +857,15 @@ def pies_by_cluster(
     if len(savename) > 0:
         fig.savefig(savename, bbox_inches="tight", transparent=True)
     if show:
-        plt.show(bbox_inches="tight")
+        plt.show()
 
 
 def pie(
     assignments: np.ndarray,
     *,
-    savename: str | os.PathLike = None,
+    savename=None,
     title: str = "",
-    cluster_ordering: np.ndarray = None,
+    cluster_ordering=None,
     show: bool = False,
     legend_bbox_to_anchor=(1.2, 1.0),
     colors: tuple[str, ...] = (
@@ -918,14 +913,14 @@ def pie(
     if savename is not None:
         fig.savefig(savename, bbox_inches="tight", transparent=True)
     if show:
-        plt.show(bbox_inches="tight")
+        plt.show()
 
 
 def summarize_metric_vs_cluster(
     metric: np.ndarray,
     cluster_assignment: np.ndarray,
-    names: list = None,
-    cluster_ordering: np.ndarray = None,
+    names=None,
+    cluster_ordering=None,
 ) -> None:
     """creates aggregate summary statistics grouped by cluster
 
@@ -1092,7 +1087,7 @@ def plot_weighted_means_2d_trajectories(
     soft_assignment: bool = True,
     cov_alpha: float = 0.05,
     conf_thresh: float = 0.68,
-    elide_at: list = None,
+    elide_at=None,
 ) -> None:
     """
 
@@ -1209,7 +1204,7 @@ def plot_weighted_means_2d_trajectories(
                     "#4E5B31",
                 )[i],
                 linewidths=1,
-                levels=[float(res.x), np.inf],
+                levels=[float(res.x.item()), np.inf],
                 alpha=cov_alpha,
             )
 

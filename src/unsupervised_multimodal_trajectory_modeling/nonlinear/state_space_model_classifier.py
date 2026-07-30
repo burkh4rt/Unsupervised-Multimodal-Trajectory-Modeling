@@ -40,7 +40,7 @@ class StateSpaceModelClassifier(
             )
         return self
 
-    def score(self, data: tuple[np.ndarray, np.ndarray] = None) -> float:
+    def score(self, data=None) -> float:
         if data is None:
             data = self.data
         else:
@@ -58,7 +58,7 @@ class StateSpaceModelClassifier(
         assert jt_p.shape[0] == data[0].shape[1]
         return float(np.sum(np.log(jt_p)))
 
-    def predict_proba(self, data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray:
+    def predict_proba(self, data=None) -> np.ndarray:
         if data is None:
             data = self.data
         else:
@@ -76,7 +76,7 @@ class StateSpaceModelClassifier(
         assert np.all(pc >= 0.0) and np.allclose(np.sum(pc, axis=-1), 1.0)
         return pc
 
-    def predict(self, data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray:
+    def predict(self, data=None) -> np.ndarray:
         if data is None:
             data = self.data
         else:

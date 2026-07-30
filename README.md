@@ -1,6 +1,6 @@
 # Unsupervised Multimodal Trajectory Modeling
 
-[![DOI](img/692068384.svg)](https://zenodo.org/badge/latestdoi/692068384)
+[![DOI](https://raw.githubusercontent.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling/master/img/692068384.svg)](https://zenodo.org/badge/latestdoi/692068384)
 [![SWH](https://archive.softwareheritage.org/badge/origin/https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling)
 
 We propose and validate a mixture of state space models to perform unsupervised
@@ -151,7 +151,7 @@ python3 -m build
 python3 -m pip install --upgrade twine
 python3 -m pip install --upgrade pypi_attestations
 python -m pypi_attestations sign dist/*
-python3 -m twine upload --attestations --repository testpypi dist/*
+python3 -m twine upload --repository testpypi dist/*
 ```
 
 -->

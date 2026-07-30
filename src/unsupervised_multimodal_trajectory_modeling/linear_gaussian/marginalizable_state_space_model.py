@@ -858,9 +858,7 @@ def sample_nonlinear_nongaussian_trajectory(
     return z, x
 
 
-def marginalizable_gaussian_log_prob(
-    x: np.ndarray, μ: np.ndarray = None, Σ: np.ndarray = None
-):
+def marginalizable_gaussian_log_prob(x: np.ndarray, μ=None, Σ=None):
     """gaussian log probability that marginalizes over np.nan values
 
     Parameters

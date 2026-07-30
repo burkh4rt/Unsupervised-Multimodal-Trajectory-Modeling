@@ -151,7 +151,7 @@ class MMLinGaussSS_marginalizable:
                     init="k-means++",
                     random_state=self.random_seed,
                 ).fit_predict(
-                    np.row_stack(
+                    np.vstack(
                         [self.states[:, i, :].flatten() for i in range(self.n_data)]
                     )
                 )
@@ -255,7 +255,7 @@ class MMLinGaussSS_marginalizable:
             )
 
     @staticmethod
-    def from_pickle(file: str | os.PathLike, training_data: dict = None):
+    def from_pickle(file: str | os.PathLike, training_data=None):
         with (
             gzip.open(file, "rb")
             if os.path.splitext(file)[-1] == ".gz"
@@ -343,8 +343,8 @@ class MMLinGaussSS_marginalizable:
         """
         for s in string.ascii_uppercase[: self.n_clusters]:
             c = self.inverse_correspondence[s]
-            Zcprev = np.row_stack([*self.states[:-1, self.cluster_assignment == c, :]])
-            Zcnext = np.row_stack([*self.states[1:, self.cluster_assignment == c, :]])
+            Zcprev = np.vstack([*self.states[:-1, self.cluster_assignment == c, :]])
+            Zcnext = np.vstack([*self.states[1:, self.cluster_assignment == c, :]])
             trans_idx = np.isfinite(np.column_stack([Zcprev, Zcnext])).all(axis=1)
             Zcprev = Zcprev[trans_idx, :]
             Zcnext = Zcnext[trans_idx, :]
@@ -366,10 +366,10 @@ class MMLinGaussSS_marginalizable:
                     print(f"dof={t_res.df_denom}")
 
             if test_obs:
-                Xcs = np.row_stack(
+                Xcs = np.vstack(
                     [*self.observations[:, self.cluster_assignment == c, :]]
                 )
-                Zcs = np.row_stack([*self.states[:, self.cluster_assignment == c, :]])
+                Zcs = np.vstack([*self.states[:, self.cluster_assignment == c, :]])
                 meas_idx = np.isfinite(np.column_stack([Xcs, Zcs])).all(axis=1)
                 Xcs = Xcs[meas_idx, :]
                 Zcs = Zcs[meas_idx, :]
@@ -379,12 +379,7 @@ class MMLinGaussSS_marginalizable:
                     print(sm.OLS(endog=Xcs[:, j], exog=Zcs).fit().summary())
 
     def conditional_log_likelihoods_first_T0_steps(
-        self,
-        c: int,
-        T0: int,
-        *,
-        states: np.ndarray = None,
-        observations: np.ndarray = None,
+        self, c: int, T0: int, *, states=None, observations=None
     ) -> np.ndarray:
         """Computes class-conditional log likelihoods for each data instance
         restricted to steps 1<=t<=T0
@@ -436,7 +431,7 @@ class MMLinGaussSS_marginalizable:
         )
 
     def conditional_log_likelihoods(
-        self, c: int, *, states: np.ndarray = None, observations: np.ndarray = None
+        self, c: int, *, states=None, observations=None
     ) -> np.ndarray:
         """Computes class-conditional log likelihoods for each data instance
 
@@ -468,7 +463,7 @@ class MMLinGaussSS_marginalizable:
         )
 
     def cluster_propensities_over_time(
-        self, *, states: np.ndarray = None, observations: np.ndarray = None
+        self, *, states=None, observations=None
     ) -> np.ndarray:
         """Computes probabilities of cluster membership for each training
         datapoint given only first t timesteps, for 1 <= t <= T
@@ -511,9 +506,7 @@ class MMLinGaussSS_marginalizable:
         assert np.all(pc_t >= 0.0) and np.allclose(np.sum(pc_t, axis=-1), 1.0)
         return pc_t
 
-    def e_complete_data_log_lik(
-        self, *, states: np.ndarray = None, observations: np.ndarray = None
-    ) -> float:
+    def e_complete_data_log_lik(self, *, states=None, observations=None) -> float:
         """Computes expected complete data log likelihood
 
         Note: EM should increase this value after every iteration
@@ -553,9 +546,7 @@ class MMLinGaussSS_marginalizable:
             ]
         )
 
-    def model_log_likelihood(
-        self, *, states: np.ndarray = None, observations: np.ndarray = None
-    ) -> float:
+    def model_log_likelihood(self, *, states=None, observations=None) -> float:
         """Computes log likelihood over i.i.d. samples
 
         Parameters
@@ -590,7 +581,7 @@ class MMLinGaussSS_marginalizable:
         assert lZ.shape[0] == states.shape[1]
         return np.sum(lZ)
 
-    def aic(self, states: np.ndarray = None, observations: np.ndarray = None) -> float:
+    def aic(self, states=None, observations=None) -> float:
         """computes the AIC for the model on a given dataset (defaults to the
         training dataset)
 
@@ -612,7 +603,7 @@ class MMLinGaussSS_marginalizable:
             + 2 * self.n_free_params
         )
 
-    def bic(self, states: np.ndarray = None, observations: np.ndarray = None) -> float:
+    def bic(self, states=None, observations=None) -> float:
         """computes the BIC for the model on a given dataset (defaults to the
         training dataset)
 
@@ -641,8 +632,8 @@ class MMLinGaussSS_marginalizable:
         *,
         return_probs: bool = False,
         return_prenormalized_log_probs: bool = False,
-        states: np.ndarray = None,
-        observations: np.ndarray = None,
+        states=None,
+        observations=None,
     ):
         """Hard assignment of each data instance to a cluster according to
         maximum likelihood
@@ -701,11 +692,7 @@ class MMLinGaussSS_marginalizable:
                 return assignments, probs, prenorm
 
     def cluster_assignment_index(
-        self,
-        *,
-        cluster: str = "A",
-        states: np.ndarray = None,
-        observations: np.ndarray = None,
+        self, *, cluster: str = "A", states=None, observations=None
     ) -> np.ndarray:
         """Return pre-normalized log-odds of assignment to cluster `cluster`"""
         return self.mle_cluster_assignment(
@@ -809,7 +796,7 @@ class MMLinGaussSS_marginalizable:
         return next_states, next_observations
 
     def initial_full_data_cluster_assignment(
-        self, *, states: np.ndarray = None, observations: np.ndarray = None
+        self, *, states=None, observations=None
     ) -> np.ndarray:
         """Hard assignment of each data instance to a cluster according to
         only data available initially (both hidden and observed)
@@ -843,7 +830,7 @@ class MMLinGaussSS_marginalizable:
         return assignments
 
     def predictions_from_initial_data(
-        self, *, states: np.ndarray = None, observations: np.ndarray = None
+        self, *, states=None, observations=None
     ) -> tuple[np.ndarray, np.ndarray]:
         """Predicted states and observations given only initial data, based
         on cluster assignment from inital data
@@ -887,7 +874,7 @@ class MMLinGaussSS_marginalizable:
         return predicted_states, predicted_observations
 
     def observed_condl_log_lik_first_T0_steps(
-        self, c: int, T0: int, *, observations: np.ndarray = None
+        self, c: int, T0: int, *, observations=None
     ) -> np.ndarray:
         """p(x|c), this marginalizes out the hidden states for a single
         state space model component
@@ -940,7 +927,7 @@ class MMLinGaussSS_marginalizable:
         )
 
     def observed_conditional_log_likelihoods(
-        self, c: int, observations: np.ndarray = None
+        self, c: int, observations=None
     ) -> np.ndarray:
         """p(x|c), this marginalizes out the hidden states for a single
         state space model component
@@ -966,9 +953,7 @@ class MMLinGaussSS_marginalizable:
             c, self.n_timesteps, observations=observations
         )
 
-    def observed_cluster_propensities_over_time(
-        self, observations: np.ndarray = None
-    ) -> np.ndarray:
+    def observed_cluster_propensities_over_time(self, observations=None) -> np.ndarray:
         """Computes probabilities of cluster membership for each training
         datapoint given only first t timesteps, for 1 <= t <= T and
         only the observed data
@@ -1015,7 +1000,7 @@ class MMLinGaussSS_marginalizable:
         return pc_t
 
     def observations_mle_cluster_assignment(
-        self, *, return_probs: bool = False, observations: np.ndarray = None
+        self, *, return_probs: bool = False, observations=None
     ):
         """Hard assignment of each data observation to a cluster according to
         maximum likelihood
@@ -1154,8 +1139,8 @@ class MMLinGaussSS_marginalizable:
             self.init_state_means[c] = np.mean(Zc_init, axis=0)
             self.init_state_covs[c] = np.cov(Zc_init, rowvar=False)
 
-            Zprev = np.row_stack([*Zc[:-1, :, :]])
-            Znext = np.row_stack([*Zc[1:, :, :]])
+            Zprev = np.vstack([*Zc[:-1, :, :]])
+            Znext = np.vstack([*Zc[1:, :, :]])
             trans_idx = np.isfinite(np.column_stack([Zprev, Znext])).all(axis=1)
             Zprev = Zprev[trans_idx, :]
             Znext = Znext[trans_idx, :]
@@ -1168,8 +1153,8 @@ class MMLinGaussSS_marginalizable:
                     MMLinGaussSS_marginalizable.regress(Zprev, Znext)
                 )
 
-            Xcs = np.row_stack([*Xc])
-            Zcs = np.row_stack([*Zc])
+            Xcs = np.vstack([*Xc])
+            Zcs = np.vstack([*Zc])
             meas_idx = np.isfinite(np.column_stack([Xcs, Zcs])).all(axis=1)
             Xcs = Xcs[meas_idx, :]
             Zcs = Zcs[meas_idx, :]
@@ -1336,7 +1321,7 @@ class MMLinGaussSS_marginalizable:
         *,
         title: str = "Cluster Assignment Probability (using observed only) \n"
         "vs. Number of Time steps",
-        observations: np.ndarray = None,
+        observations=None,
     ) -> None:
         """determine and plot the mean likelihood +/- 1sem
         of belonging to the ultimately assigned
@@ -1430,8 +1415,8 @@ class MMLinGaussSS_marginalizable:
         savename: str,
         *,
         title: str = "Cluster Assignment Probability\nvs. Number of Time steps",
-        observations: np.ndarray = None,
-        states: np.ndarray = None,
+        observations=None,
+        states=None,
     ) -> None:
         """determine and plot the mean likelihood +/- 1sem
         of belonging to the ultimately assigned
@@ -1553,7 +1538,7 @@ class MMLinGaussSS_marginalizable:
             )
 
     def get_initial_means_and_stds(
-        self, std_param: dict[str, np.ndarray] = None
+        self, std_param=None
     ) -> dict[str, dict[str, np.ndarray]]:
         """returns a dictionary with clusters as keys and dictionaries with
         keys "μ" & "σ", corresponding to the initial means and standard
@@ -1580,7 +1565,7 @@ class MMLinGaussSS_marginalizable:
         return μσ_dict
 
     def get_initial_diffs_means_and_stds(
-        self, std_param: dict[str, np.ndarray] = None
+        self, std_param=None
     ) -> dict[str, dict[str, np.ndarray]]:
         """returns a dictionary with clusters as keys and dictionaries with
         keys "μ" & "σ", corresponding to the initial means and standard
@@ -1643,14 +1628,14 @@ class MMLinGaussSS_marginalizable:
         *,
         show_colorbar: bool = False,
         show_labels: bool = True,
-        xticks: list = None,
-        xlabel: str = None,
-        yticks: list = None,
-        ylabel: str = None,
-        title: str = None,
+        xticks=None,
+        xlabel=None,
+        yticks=None,
+        ylabel=None,
+        title=None,
         fmt_str: str = "{:.2f}",
         figsize: tuple = (6.4, 4.8),
-        savename: os.PathLike | str = None,
+        savename=None,
         show: bool = False,
     ):
         mat = np.atleast_2d(mat)

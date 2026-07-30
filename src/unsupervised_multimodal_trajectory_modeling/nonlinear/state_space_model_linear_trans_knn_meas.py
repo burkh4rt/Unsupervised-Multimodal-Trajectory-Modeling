@@ -68,15 +68,15 @@ class StateSpaceHybrid(ssm.StateSpaceModel):
             zip(
                 ["coeff", "covar"],
                 util.regress_alpha(
-                    np.row_stack(states[:-1]), np.row_stack(states[1:]), self.alpha
+                    np.vstack(states[:-1]), np.vstack(states[1:]), self.alpha
                 )
                 if self.alpha > 2 * np_eps
-                else util.regress(np.row_stack(states[:-1]), np.row_stack(states[1:])),
+                else util.regress(np.vstack(states[:-1]), np.vstack(states[1:])),
             )
         )
 
-        outp = np.row_stack(measurements[:])
-        inp = np.row_stack(states[:])
+        outp = np.vstack(measurements[:])
+        inp = np.vstack(states[:])
         meas_idx = np.isfinite(np.column_stack([inp, outp])).all(axis=1)
         out_mdl = skl_ms.GridSearchCV(
             skl_neighbors.KNeighborsRegressor(),
