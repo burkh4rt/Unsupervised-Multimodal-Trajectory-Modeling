@@ -1,61 +1,69 @@
 [project]
-name = "unsupervised-multimodal-trajectory-modeling"
-authors = [
-  {name = "Michael C. Burkhart", email = "mcb93@cam.ac.uk" }
-]
-description = "trains mixtures of state space models with expectation maximization"
-readme = {file = "README.md", content-type = "text/markdown"}
-keywords = [
-  "unsupervised clustering",
-  "trajectory clustering",
-  "mixture models", 
-  "state space models",
-  "machine learning"
-]
-license = {file = "LICENSE.txt"}
-dependencies = [
-  "matplotlib>=3.8",
-  "numba>=0.59",
-  "numpy>=1.26",
-  "pandas>=2.2",
-  "pip>=24.0",
-  "scikit-learn>=1.4",
-  "scipy>=1.12",
-  "seaborn>=0.13",
-  "statsmodels>=0.14",
-  "tabulate>=0.9"
-]
-classifiers = [
-  "Development Status :: 2 - Pre-Alpha",
-  "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
-  "Natural Language :: English",
-  "Programming Language :: Python :: 3",
-  "Topic :: Scientific/Engineering :: Artificial Intelligence"
-]
-version = "2024.2.2"
-requires-python = ">=3.10"
+  authors = [ { name = "Michael C. Burkhart", email = "mcb93@cantab.ac.uk" } ]
+  classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  ]
+  dependencies = [
+    "matplotlib>=3.8",
+    "numba>=0.59",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "pip>=24.0",
+    "scikit-learn>=1.4",
+    "scipy>=1.12",
+    "seaborn>=0.13",
+    "statsmodels>=0.14",
+    "tabulate>=0.9",
+  ]
+  description = "trains mixtures of state space models with expectation maximization"
+  keywords = [
+    "unsupervised clustering",
+    "trajectory clustering",
+    "mixture models",
+    "state space models",
+    "machine learning",
+  ]
+  license-files = [ "LICEN[CS]E.*" ]
+  name = "unsupervised-multimodal-trajectory-modeling"
+  readme = { file = "README.md", content-type = "text/markdown" }
+  requires-python = ">=3.10"
+  version = "2026.1.3"
 
-[project.urls]
-Homepage = "https://pypi.org/project/unsupervised-multimodal-trajectory-modeling/"
-Repository = "https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling"
+  [project.urls]
+    Homepage   = "https://pypi.org/project/unsupervised-multimodal-trajectory-modeling/"
+    Repository = "https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling"
 
-[tool.isort]
-profile = "black"
-
-[tool.setuptools.packages]
-find = {}
 
 [build-system]
-requires = [
-  "setuptools>=69.0",
-  "numpy>=1.26"
-]
-build-backend = "setuptools.build_meta"
+  build-backend = "setuptools.build_meta"
+  requires      = [ "setuptools" ]
 
-[tool.black]
-line-length = 79
-target-version = [
-  "py310",
-  "py311"
-]
+[tool.ruff]
+  extend-exclude = [ "*.md" ]
+  line-length    = 88
+
+  [tool.ruff.format]
+    docstring-code-format     = true
+    indent-style              = "space"
+    line-ending               = "lf"
+    quote-style               = "double"
+    skip-magic-trailing-comma = true
+
+  [tool.ruff.lint]
+    ignore = [ "E731" ]
+    select = [ "E", "F", "I" ]
+
+    [tool.ruff.lint.isort]
+      split-on-trailing-comma = false
+
+
+[tool.setuptools]
+  include-package-data = true
+
+  [tool.setuptools.packages.find]
+    where = [ "src" ]

@@ -47,9 +47,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
 
         self.n_clusters = n_clusters
         self.cluster_propensities = np.ones(self.n_clusters) / self.n_clusters
-        self.cluster_assignment = self.rng.integers(
-            self.n_clusters, size=self.n_data
-        )
+        self.cluster_assignment = self.rng.integers(self.n_clusters, size=self.n_data)
 
         self.component_model = component_model
         self.component_model_hyperparams = component_model_hyperparams
@@ -58,12 +56,8 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
             for _ in range(self.n_clusters)
         ]
 
-        self._correspondence = dict(
-            zip(range(self.n_clusters), string.ascii_uppercase)
-        )
-        self.inverse_correspondence = {
-            v: k for k, v in self._correspondence.items()
-        }
+        self._correspondence = dict(zip(range(self.n_clusters), string.ascii_uppercase))
+        self.inverse_correspondence = {v: k for k, v in self._correspondence.items()}
 
         self.hex_hash = hashlib.md5(
             self.states.tobytes()
@@ -71,9 +65,9 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
             + str(self.n_clusters).encode("utf-8")
             + str(self.component_model).encode("utf-8")
             + (
-                json.dumps(
-                    self.component_model_hyperparams, sort_keys=True
-                ).encode("utf-8")
+                json.dumps(self.component_model_hyperparams, sort_keys=True).encode(
+                    "utf-8"
+                )
                 if self.component_model_hyperparams != {}
                 else b""
             )
@@ -93,7 +87,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
         )
 
     @property
-    def data(self) -> tuple[np.array, np.array]:
+    def data(self) -> tuple[np.ndarray, np.ndarray]:
         return self.states, self.observations
 
     @property
@@ -103,9 +97,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
     @correspondence.setter
     def correspondence(self, corr: dict[int, str]) -> None:
         self._correspondence = corr
-        self.inverse_correspondence = {
-            v: k for k, v in self._correspondence.items()
-        }
+        self.inverse_correspondence = {v: k for k, v in self._correspondence.items()}
 
     def _E_step(self):
         """performs Expectation step of EM by hard assigning each training
@@ -124,9 +116,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
         assert new_cluster_assignment.size == self.n_data
         assert set(new_cluster_assignment) == set(range(self.n_clusters))
         n_switches = int(
-            np.sum(
-                np.not_equal(self.cluster_assignment, new_cluster_assignment)
-            )
+            np.sum(np.not_equal(self.cluster_assignment, new_cluster_assignment))
         )
         self.cluster_assignment = new_cluster_assignment
         return n_switches
@@ -137,9 +127,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
         memberships
         """
         for c in range(self.n_clusters):
-            self.cluster_propensities[c] = np.mean(
-                self.cluster_assignment == c
-            )
+            self.cluster_propensities[c] = np.mean(self.cluster_assignment == c)
             self.cluster_models[c].fit(
                 (
                     self.states[:, self.cluster_assignment == c],
@@ -188,9 +176,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
         if bool(use_cache):
             try:
                 pfile = sorted(
-                    glob.glob(
-                        os.path.join(home_dir, "tmp", f"mmm-{self.hex_hash}*")
-                    ),
+                    glob.glob(os.path.join(home_dir, "tmp", f"mmm-{self.hex_hash}*")),
                     key=os.path.getmtime,
                 ).pop()
                 best_mdl = StateSpaceMixtureModel.from_pickle(
@@ -209,10 +195,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
                     print("No model found in cache.")
             except AssertionError:
                 if verbose:
-                    print(
-                        "Model found in cache does not match our "
-                        "requirements."
-                    )
+                    print("Model found in cache does not match our requirements.")
             except Exception as err:
                 if verbose:
                     print(f"Issue loading cached model -- encountered {err}")
@@ -220,32 +203,21 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
         match init:
             case "k-means" | "kmeans":
                 self.cluster_assignment = skl_cluster.KMeans(
-                    n_clusters=self.n_clusters,
-                    init="k-means++",
-                    random_state=0,
+                    n_clusters=self.n_clusters, init="k-means++", random_state=0
                 ).fit_predict(self.states[0])
             case "kmeans-all" | "k-means-all":
                 self.cluster_assignment = skl_cluster.KMeans(
-                    n_clusters=self.n_clusters,
-                    init="k-means++",
-                    random_state=0,
+                    n_clusters=self.n_clusters, init="k-means++", random_state=0
                 ).fit_predict(
-                    np.row_stack(
-                        [
-                            self.states[:, i, :].flatten()
-                            for i in range(self.n_data)
-                        ]
+                    np.vstack(
+                        [self.states[:, i, :].flatten() for i in range(self.n_data)]
                     )
                 )
             case "kmeans-take-finite" | "k-means-take-finite":
                 self.cluster_assignment = skl_cluster.KMeans(
-                    n_clusters=self.n_clusters,
-                    init="k-means++",
-                    random_state=0,
+                    n_clusters=self.n_clusters, init="k-means++", random_state=0
                 ).fit_predict(
-                    np.column_stack(
-                        util.take_finite_along_axis(self.states, 0)
-                    )
+                    np.column_stack(util.take_finite_along_axis(self.states, 0))
                 )
             case _:
                 self.cluster_assignment = self.rng.integers(
@@ -253,10 +225,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
                 )
         assert len(self.cluster_assignment) == self.n_data
         if np.min(np.bincount(self.cluster_assignment)) <= 3:
-            warnings.warn(
-                "Cluster initialisation method yielded a nearly"
-                "empty cluster"
-            )
+            warnings.warn("Cluster initialisation method yielded a nearlyempty cluster")
             self.cluster_assignment = self.rng.integers(
                 low=0, high=self.n_clusters, size=self.n_data
             )
@@ -279,7 +248,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
         try:
             score = self.score()
         except TypeError:
-            score = -np.infty
+            score = -np.inf
         best_mdl, best_score = self, score
         for i in range(n_restarts):
             try:
@@ -294,7 +263,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
                     best_mdl, best_score = new_candidate, new_score
             except Exception:  # Encountered nearly empty cluster
                 pass
-        if best_score == -np.infty:
+        if best_score == -np.inf:
             raise Exception("training failed")
 
         best_mdl.last_trained = (
@@ -314,24 +283,16 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
         include_training_data: bool = False,
     ):
         os.makedirs(save_location, exist_ok=True)
-        ts = datetime.datetime.now(datetime.timezone.utc).strftime(
-            "%Y%m%dT%H%MZ"
-        )
+        ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%MZ")
         if there_can_only_be_one:
             list(
                 map(
                     os.remove,
-                    glob.glob(
-                        os.path.join(save_location, f"mmm-{self.hex_hash}*")
-                    ),
+                    glob.glob(os.path.join(save_location, f"mmm-{self.hex_hash}*")),
                 )
             )
         with gzip.open(
-            os.path.join(
-                save_location,
-                f"mmm-{self.hex_hash}-{ts}.p.gz",
-            ),
-            "wb",
+            os.path.join(save_location, f"mmm-{self.hex_hash}-{ts}.p.gz"), "wb"
         ) as f:
             pickle.dump(
                 {
@@ -339,9 +300,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
                     "cluster_propensities": self.cluster_propensities,
                     "component_model": self.component_model,
                     "component_model_hyperparams": self.component_model_hyperparams,
-                    "cluster_models": [
-                        cm.to_pickle() for cm in self.cluster_models
-                    ],
+                    "cluster_models": [cm.to_pickle() for cm in self.cluster_models],
                     "rng": self.rng,
                     "cluster_assignment": self.cluster_assignment,
                     "correspondence": self.correspondence,
@@ -359,22 +318,19 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
             )
 
     @staticmethod
-    def from_pickle(file: str | os.PathLike, training_data: dict = None):
-        with gzip.open(file, "rb") if os.path.splitext(file)[
-            -1
-        ] == ".gz" else open(file, "rb") as f:
+    def from_pickle(file: str | os.PathLike, training_data=None):
+        with (
+            gzip.open(file, "rb")
+            if os.path.splitext(file)[-1] == ".gz"
+            else open(file, "rb") as f
+        ):
             mdl_dict = pickle.load(f)
             if training_data is not None:
                 mdl = StateSpaceMixtureModel(
                     n_clusters=mdl_dict["n_clusters"],
-                    data=(
-                        training_data["states"],
-                        training_data["observations"],
-                    ),
+                    data=(training_data["states"], training_data["observations"]),
                     component_model=mdl_dict["component_model"],
-                    component_model_hyperparams=mdl_dict[
-                        "component_model_hyperparams"
-                    ]
+                    component_model_hyperparams=mdl_dict["component_model_hyperparams"]
                     if "component_model_hyperparams" in mdl_dict
                     else dict(),
                     rng=mdl_dict["rng"],
@@ -384,17 +340,14 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
                     n_clusters=mdl_dict["n_clusters"],
                     data=(mdl_dict["states"], mdl_dict["observations"]),
                     component_model=mdl_dict["component_model"],
-                    component_model_hyperparams=mdl_dict[
-                        "component_model_hyperparams"
-                    ]
+                    component_model_hyperparams=mdl_dict["component_model_hyperparams"]
                     if "component_model_hyperparams" in mdl_dict
                     else dict(),
                     rng=mdl_dict["rng"],
                 )
             mdl.cluster_propensities = mdl_dict["cluster_propensities"]
             mdl.cluster_models = [
-                mdl.component_model().from_pickle(p)
-                for p in mdl_dict["cluster_models"]
+                mdl.component_model().from_pickle(p) for p in mdl_dict["cluster_models"]
             ]
             mdl.rng = mdl_dict["rng"]
             mdl.cluster_assignment = mdl_dict["cluster_assignment"]
@@ -403,11 +356,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
             mdl.last_trained = mdl_dict["last_trained"]
             return mdl
 
-    def predict_proba(
-        self,
-        data: tuple[np.ndarray, np.ndarray] = None,
-        return_prenormalized_log_probs: bool = False,
-    ) -> np.array | tuple[np.array, np.array]:
+    def predict_proba(self, data=None, return_prenormalized_log_probs: bool = False):
         if data is None:
             data = self.data
 
@@ -431,12 +380,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
         else:
             return preds
 
-    def predict(
-        self,
-        *,
-        data: tuple[np.ndarray, np.ndarray] = None,
-        letters: bool = True,
-    ) -> np.array:
+    def predict(self, *, data=None, letters: bool = True) -> np.ndarray:
         preds = np.argmax(self.predict_proba(data=data), axis=1)
 
         if letters:
@@ -444,7 +388,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
         else:
             return preds
 
-    def score(self, data: tuple[np.ndarray, np.ndarray] = None) -> float:
+    def score(self, data=None) -> float:
         if data is None:
             data = self.data
 
@@ -454,13 +398,10 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
             assert set(cluster_assignment) == set(range(self.n_clusters))
             assert cluster_assignment.size == data[0].shape[1]
         except AssertionError:
-            return -np.infty
+            return -np.inf
 
         conditional_log_likelihoods = np.column_stack(
-            [
-                self.cluster_models[c].score(data)
-                for c in range(self.n_clusters)
-            ]
+            [self.cluster_models[c].score(data) for c in range(self.n_clusters)]
         )
 
         return float(
@@ -473,9 +414,7 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
             )
         )
 
-    def model_log_likelihood(
-        self, data: tuple[np.ndarray, np.ndarray] = None
-    ) -> float:
+    def model_log_likelihood(self, data=None) -> float:
         if data is None:
             data = self.data
 
@@ -496,11 +435,9 @@ class StateSpaceMixtureModel(skl_base.BaseEstimator, skl_base.DensityMixin):
             )
         )
 
-    def cluster_assignment_index(
-        self, *, cluster: str = "A", data: tuple[np.ndarray, np.ndarray] = None
-    ) -> np.array:
+    def cluster_assignment_index(self, *, cluster: str = "A", data=None) -> np.ndarray:
         """Return pre-normalized log-odds of assignment to cluster `cluster`"""
 
-        return self.predict_proba(
-            data=data, return_prenormalized_log_probs=True
-        )[-1][self.inverse_correspondence[cluster]]
+        return self.predict_proba(data=data, return_prenormalized_log_probs=True)[-1][
+            self.inverse_correspondence[cluster]
+        ]

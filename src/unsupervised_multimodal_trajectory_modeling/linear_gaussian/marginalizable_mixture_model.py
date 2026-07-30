@@ -45,8 +45,8 @@ class MMLinGaussSS_marginalizable:
     def __init__(
         self,
         n_clusters: int,
-        states: np.array,
-        observations: np.array,
+        states: np.ndarray,
+        observations: np.ndarray,
         random_seed: int = 42,
         init: str = "random",
         alpha: float = 0.0,
@@ -57,9 +57,9 @@ class MMLinGaussSS_marginalizable:
         ----------
         n_clusters: int
             number of clusters in the mixture
-        states: np.array
+        states: np.ndarray
             n_timesteps × n_data × d_states array of latent states
-        observations: np.array
+        observations: np.ndarray
             n_timesteps × n_data × d_observations array of measurements
         random_seed: int
             for random number generation
@@ -80,13 +80,10 @@ class MMLinGaussSS_marginalizable:
         self.n_timesteps, self.n_data, self.d_states = self.states.shape
         self.d_observations = self.observations.shape[-1]
 
-        self.cluster_propensities = (
-            np.ones(shape=[self.n_clusters]) / self.n_clusters
-        )
+        self.cluster_propensities = np.ones(shape=[self.n_clusters]) / self.n_clusters
 
         self.init_state_means = [
-            np.random.normal(size=[self.d_states])
-            for _ in range(self.n_clusters)
+            np.random.normal(size=[self.d_states]) for _ in range(self.n_clusters)
         ]
 
         self.init_state_covs = [
@@ -120,8 +117,7 @@ class MMLinGaussSS_marginalizable:
             for _ in range(self.n_clusters)
         ]
         self.measurement_covs = [
-            x @ x.T + np.eye(self.d_observations)
-            for x in self.measurement_covs
+            x @ x.T + np.eye(self.d_observations) for x in self.measurement_covs
         ]
 
         self.random_seed = random_seed
@@ -155,11 +151,8 @@ class MMLinGaussSS_marginalizable:
                     init="k-means++",
                     random_state=self.random_seed,
                 ).fit_predict(
-                    np.row_stack(
-                        [
-                            self.states[:, i, :].flatten()
-                            for i in range(self.n_data)
-                        ]
+                    np.vstack(
+                        [self.states[:, i, :].flatten() for i in range(self.n_data)]
                     )
                 )
             case _:
@@ -167,21 +160,15 @@ class MMLinGaussSS_marginalizable:
                     low=0, high=self.n_clusters, size=self.n_data
                 )
 
-        self._correspondence = dict(
-            zip(range(self.n_clusters), string.ascii_uppercase)
-        )
-        self.inverse_correspondence = {
-            v: k for k, v in self._correspondence.items()
-        }
+        self._correspondence = dict(zip(range(self.n_clusters), string.ascii_uppercase))
+        self.inverse_correspondence = {v: k for k, v in self._correspondence.items()}
 
         self.hex_hash = hashlib.md5(
             self.states.tobytes()
             + self.observations.tobytes()
             + str(self.n_clusters).encode("utf-8")
             + (
-                np.format_float_positional(self.alpha, unique=True).encode(
-                    "utf-8"
-                )
+                np.format_float_positional(self.alpha, unique=True).encode("utf-8")
                 if self.alpha > 2 * np_eps
                 else b""
             )
@@ -207,9 +194,7 @@ class MMLinGaussSS_marginalizable:
         ) + sum(
             map(
                 lambda x: len(np.triu_indices_from(np.atleast_2d(x))[0]),
-                self.init_state_covs
-                + self.transition_covs
-                + self.measurement_covs,
+                self.init_state_covs + self.transition_covs + self.measurement_covs,
             )
         )
 
@@ -220,9 +205,7 @@ class MMLinGaussSS_marginalizable:
     @correspondence.setter
     def correspondence(self, corr: dict[int, str]) -> None:
         self._correspondence = corr
-        self.inverse_correspondence = {
-            v: k for k, v in self._correspondence.items()
-        }
+        self.inverse_correspondence = {v: k for k, v in self._correspondence.items()}
 
     def to_pickle(
         self,
@@ -231,24 +214,16 @@ class MMLinGaussSS_marginalizable:
         include_training_data: bool = False,
     ):
         os.makedirs(save_location, exist_ok=True)
-        ts = datetime.datetime.now(datetime.timezone.utc).strftime(
-            "%Y%m%dT%H%MZ"
-        )
+        ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%MZ")
         if there_can_only_be_one:
             list(
                 map(
                     os.remove,
-                    glob.glob(
-                        os.path.join(save_location, f"mmm-{self.hex_hash}*")
-                    ),
+                    glob.glob(os.path.join(save_location, f"mmm-{self.hex_hash}*")),
                 )
             )
         with gzip.open(
-            os.path.join(
-                save_location,
-                f"mmm-{self.hex_hash}-{ts}.p.gz",
-            ),
-            "wb",
+            os.path.join(save_location, f"mmm-{self.hex_hash}-{ts}.p.gz"), "wb"
         ) as f:
             pickle.dump(
                 {
@@ -280,10 +255,12 @@ class MMLinGaussSS_marginalizable:
             )
 
     @staticmethod
-    def from_pickle(file: str | os.PathLike, training_data: dict = None):
-        with gzip.open(file, "rb") if os.path.splitext(file)[
-            -1
-        ] == ".gz" else open(file, "rb") as f:
+    def from_pickle(file: str | os.PathLike, training_data=None):
+        with (
+            gzip.open(file, "rb")
+            if os.path.splitext(file)[-1] == ".gz"
+            else open(file, "rb") as f
+        ):
             mdl_dict = pickle.load(f)
         if training_data is not None:
             mdl = MMLinGaussSS_marginalizable(
@@ -318,12 +295,7 @@ class MMLinGaussSS_marginalizable:
         mdl.last_trained = mdl_dict["last_trained"]
         return mdl
 
-    def print_model(
-        self,
-        *,
-        verbose: bool = False,
-        line_len: int = 79,
-    ) -> None:
+    def print_model(self, *, verbose: bool = False, line_len: int = 79) -> None:
         """Print model parameters.
 
         Parameters
@@ -334,50 +306,28 @@ class MMLinGaussSS_marginalizable:
             how wide should the print out be?
 
         """
-        print(
-            "MixtureModelLinearGaussianStateSpace |".ljust(line_len, "=")
-            + "\n"
-        )
+        print("MixtureModelLinearGaussianStateSpace |".ljust(line_len, "=") + "\n")
         for s in string.ascii_uppercase[: self.n_clusters]:
             c = self.inverse_correspondence[s]
             print(f"Cluster {s} |".ljust(line_len, "-"))
             print(f"Cluster propensity:\n {self.cluster_propensities[c]:.3f}")
+            print(f"Initial state mean:\n {np.round(self.init_state_means[c], 3)}")
+            if verbose:
+                print(f"Initial state cov:\n {np.round(self.init_state_covs[c], 3)}")
             print(
-                f"Initial state mean:\n "
-                f"{np.round(self.init_state_means[c], 3)}"
+                f"State transition coeffs:\n {np.round(self.transition_matrices[c], 3)}"
             )
             if verbose:
-                print(
-                    f"Initial state cov:\n "
-                    f"{np.round(self.init_state_covs[c], 3)}"
-                )
-            print(
-                f"State transition coeffs:\n "
-                f"{np.round(self.transition_matrices[c], 3)}"
-            )
+                print(f"Transition cov:\n {np.round(self.transition_covs[c], 3)}")
+            print(f"Measurement coeffs:\n {np.round(self.measurement_matrices[c], 3)}")
             if verbose:
-                print(
-                    f"Transition cov:\n {np.round(self.transition_covs[c], 3)}"
-                )
-            print(
-                f"Measurement coeffs:\n "
-                f"{np.round(self.measurement_matrices[c], 3)}"
-            )
-            if verbose:
-                print(
-                    f"Measurement cov:\n "
-                    f"{np.round(self.measurement_covs[c], 3)}"
-                )
+                print(f"Measurement cov:\n {np.round(self.measurement_covs[c], 3)}")
         print(f"{self.last_trained=}")
         print(f"{self.hex_hash=}")
         print("=" * line_len)
 
     def print_tests(
-        self,
-        *,
-        test_1: bool = False,
-        test_01: bool = False,
-        test_obs: bool = False,
+        self, *, test_1: bool = False, test_01: bool = False, test_obs: bool = False
     ) -> None:
         """Print tests for model parameters
 
@@ -393,15 +343,9 @@ class MMLinGaussSS_marginalizable:
         """
         for s in string.ascii_uppercase[: self.n_clusters]:
             c = self.inverse_correspondence[s]
-            Zcprev = np.row_stack(
-                [*self.states[:-1, self.cluster_assignment == c, :]]
-            )
-            Zcnext = np.row_stack(
-                [*self.states[1:, self.cluster_assignment == c, :]]
-            )
-            trans_idx = np.isfinite(np.column_stack([Zcprev, Zcnext])).all(
-                axis=1
-            )
+            Zcprev = np.vstack([*self.states[:-1, self.cluster_assignment == c, :]])
+            Zcnext = np.vstack([*self.states[1:, self.cluster_assignment == c, :]])
+            trans_idx = np.isfinite(np.column_stack([Zcprev, Zcnext])).all(axis=1)
             Zcprev = Zcprev[trans_idx, :]
             Zcnext = Zcnext[trans_idx, :]
             for i in range(self.d_states):
@@ -409,25 +353,23 @@ class MMLinGaussSS_marginalizable:
                 res = sm.OLS(endog=Zcnext[:, i], exog=Zcprev).fit()
                 print(res.summary())
                 if test_1:
-                    t_res = res.t_test(f"x{i+1}=1", use_t=True)
-                    print(f"testing x{i+1}=1")
+                    t_res = res.t_test(f"x{i + 1}=1", use_t=True)
+                    print(f"testing x{i + 1}=1")
                     print(t_res)
                     print(f"dof={t_res.df_denom}")
                 if test_01:
                     t_res = res.t_test(
-                        f"x{1 if i+1 == 2 else 2}=0, x{i+1}=1", use_t=True
+                        f"x{1 if i + 1 == 2 else 2}=0, x{i + 1}=1", use_t=True
                     )
-                    print(f"testing x{1 if i+1 == 2 else 2}=0, x{i+1}=1")
+                    print(f"testing x{1 if i + 1 == 2 else 2}=0, x{i + 1}=1")
                     print(t_res)
                     print(f"dof={t_res.df_denom}")
 
             if test_obs:
-                Xcs = np.row_stack(
+                Xcs = np.vstack(
                     [*self.observations[:, self.cluster_assignment == c, :]]
                 )
-                Zcs = np.row_stack(
-                    [*self.states[:, self.cluster_assignment == c, :]]
-                )
+                Zcs = np.vstack([*self.states[:, self.cluster_assignment == c, :]])
                 meas_idx = np.isfinite(np.column_stack([Xcs, Zcs])).all(axis=1)
                 Xcs = Xcs[meas_idx, :]
                 Zcs = Zcs[meas_idx, :]
@@ -437,13 +379,8 @@ class MMLinGaussSS_marginalizable:
                     print(sm.OLS(endog=Xcs[:, j], exog=Zcs).fit().summary())
 
     def conditional_log_likelihoods_first_T0_steps(
-        self,
-        c: int,
-        T0: int,
-        *,
-        states: np.array = None,
-        observations: np.array = None,
-    ) -> np.array:
+        self, c: int, T0: int, *, states=None, observations=None
+    ) -> np.ndarray:
         """Computes class-conditional log likelihoods for each data instance
         restricted to steps 1<=t<=T0
 
@@ -494,12 +431,8 @@ class MMLinGaussSS_marginalizable:
         )
 
     def conditional_log_likelihoods(
-        self,
-        c: int,
-        *,
-        states: np.array = None,
-        observations: np.array = None,
-    ) -> np.array:
+        self, c: int, *, states=None, observations=None
+    ) -> np.ndarray:
         """Computes class-conditional log likelihoods for each data instance
 
         Parameters
@@ -530,8 +463,8 @@ class MMLinGaussSS_marginalizable:
         )
 
     def cluster_propensities_over_time(
-        self, *, states: np.array = None, observations: np.array = None
-    ) -> np.array:
+        self, *, states=None, observations=None
+    ) -> np.ndarray:
         """Computes probabilities of cluster membership for each training
         datapoint given only first t timesteps, for 1 <= t <= T
 
@@ -558,10 +491,7 @@ class MMLinGaussSS_marginalizable:
                         self.cluster_propensities[c]
                         * np.exp(
                             self.conditional_log_likelihoods_first_T0_steps(
-                                c,
-                                t + 1,
-                                states=states,
-                                observations=observations,
+                                c, t + 1, states=states, observations=observations
                             )
                         )
                         for c in range(self.n_clusters)
@@ -576,12 +506,7 @@ class MMLinGaussSS_marginalizable:
         assert np.all(pc_t >= 0.0) and np.allclose(np.sum(pc_t, axis=-1), 1.0)
         return pc_t
 
-    def e_complete_data_log_lik(
-        self,
-        *,
-        states: np.array = None,
-        observations: np.array = None,
-    ) -> float:
+    def e_complete_data_log_lik(self, *, states=None, observations=None) -> float:
         """Computes expected complete data log likelihood
 
         Note: EM should increase this value after every iteration
@@ -614,21 +539,14 @@ class MMLinGaussSS_marginalizable:
             ]
         )
 
-        return np.sum(
-            np.log(self.cluster_propensities[cluster_assignment])
-        ) + np.sum(
+        return np.sum(np.log(self.cluster_propensities[cluster_assignment])) + np.sum(
             [
                 conditional_log_likelihoods[i, cluster_assignment[i]]
                 for i in range(cluster_assignment.size)
             ]
         )
 
-    def model_log_likelihood(
-        self,
-        *,
-        states: np.array = None,
-        observations: np.array = None,
-    ) -> np.array:
+    def model_log_likelihood(self, *, states=None, observations=None) -> float:
         """Computes log likelihood over i.i.d. samples
 
         Parameters
@@ -652,9 +570,7 @@ class MMLinGaussSS_marginalizable:
                 self.cluster_propensities[c]
                 * np.exp(
                     self.conditional_log_likelihoods(
-                        c,
-                        states=states,
-                        observations=observations,
+                        c, states=states, observations=observations
                     )
                 )
                 for c in range(self.n_clusters)
@@ -665,9 +581,7 @@ class MMLinGaussSS_marginalizable:
         assert lZ.shape[0] == states.shape[1]
         return np.sum(lZ)
 
-    def aic(
-        self, states: np.array = None, observations: np.array = None
-    ) -> float:
+    def aic(self, states=None, observations=None) -> float:
         """computes the AIC for the model on a given dataset (defaults to the
         training dataset)
 
@@ -685,16 +599,11 @@ class MMLinGaussSS_marginalizable:
 
         """
         return (
-            -2
-            * self.model_log_likelihood(
-                states=states, observations=observations
-            )
+            -2 * self.model_log_likelihood(states=states, observations=observations)
             + 2 * self.n_free_params
         )
 
-    def bic(
-        self, states: np.array = None, observations: np.array = None
-    ) -> float:
+    def bic(self, states=None, observations=None) -> float:
         """computes the BIC for the model on a given dataset (defaults to the
         training dataset)
 
@@ -713,10 +622,7 @@ class MMLinGaussSS_marginalizable:
         """
 
         return (
-            -2
-            * self.model_log_likelihood(
-                states=states, observations=observations
-            )
+            -2 * self.model_log_likelihood(states=states, observations=observations)
             + np.log(self.n_data if states is None else states.shape[1])
             * self.n_free_params
         )
@@ -726,12 +632,8 @@ class MMLinGaussSS_marginalizable:
         *,
         return_probs: bool = False,
         return_prenormalized_log_probs: bool = False,
-        states: np.array = None,
-        observations: np.array = None,
-    ) -> (
-        tuple[np.array, np.array, np.array]
-        | tuple[np.array, np.array]
-        | np.array
+        states=None,
+        observations=None,
     ):
         """Hard assignment of each data instance to a cluster according to
         maximum likelihood
@@ -773,8 +675,7 @@ class MMLinGaussSS_marginalizable:
             return assignments
         else:
             probs = np.divide(
-                cluster_likelihoods,
-                np.sum(cluster_likelihoods, axis=0, keepdims=True),
+                cluster_likelihoods, np.sum(cluster_likelihoods, axis=0, keepdims=True)
             )
             if not return_prenormalized_log_probs:
                 return assignments, probs
@@ -791,12 +692,8 @@ class MMLinGaussSS_marginalizable:
                 return assignments, probs, prenorm
 
     def cluster_assignment_index(
-        self,
-        *,
-        cluster: str = "A",
-        states: np.array = None,
-        observations: np.array = None,
-    ) -> np.array:
+        self, *, cluster: str = "A", states=None, observations=None
+    ) -> np.ndarray:
         """Return pre-normalized log-odds of assignment to cluster `cluster`"""
         return self.mle_cluster_assignment(
             states=states,
@@ -807,23 +704,23 @@ class MMLinGaussSS_marginalizable:
 
     def one_step_ahead_predictions(
         self, *, states, observations
-    ) -> tuple[np.array, np.array]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """given trajectories of states & observations in the usual form,
         predicts cluster membership propensities and then forms the average
         one-step-ahead prediction for each provided data instance
 
         Parameters
         ----------
-        states: np.array
+        states: np.ndarray
             n_timesteps × n_data × d_states array of latent states
-        observations: np.array
+        observations: np.ndarray
             n_timesteps × n_data × d_observations array of measurements
 
         Returns
         -------
-        predicted_states: np.array
+        predicted_states: np.ndarray
             1 × n_data × d_states array of predicted latent states
-        predicted_observations: np.array
+        predicted_observations: np.ndarray
             1 × n_data × d_observations array of predicted measurements
 
         """
@@ -833,10 +730,7 @@ class MMLinGaussSS_marginalizable:
         next_states = np.zeros(shape=(1, *states.shape[1:]))
         next_observations = np.zeros(shape=(1, *observations.shape[1:]))
         these_states = states[-1]
-        assert assignment_probs.shape == (
-            self.n_clusters,
-            these_states.shape[0],
-        )
+        assert assignment_probs.shape == (self.n_clusters, these_states.shape[0])
         for i in range(self.n_clusters):
             next_states_c = these_states @ self.transition_matrices[i]
             next_observations_c = next_states_c @ self.measurement_matrices[i]
@@ -844,14 +738,13 @@ class MMLinGaussSS_marginalizable:
                 np.expand_dims(assignment_probs[i], axis=-1), next_states_c
             )
             next_observations += np.multiply(
-                np.expand_dims(assignment_probs[i], axis=-1),
-                next_observations_c,
+                np.expand_dims(assignment_probs[i], axis=-1), next_observations_c
             )
         return next_states, next_observations
 
     def one_step_ahead_predictions_no_history(
         self, *, states, observations
-    ) -> tuple[np.array, np.array]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """given trajectories of states & observations in the usual form,
         predicts cluster membership propensities using only the most recent
         pair of states and measurements, and then forms the average
@@ -859,16 +752,16 @@ class MMLinGaussSS_marginalizable:
 
         Parameters
         ----------
-        states: np.array
+        states: np.ndarray
             n_timesteps × n_data × d_states array of latent states
-        observations: np.array
+        observations: np.ndarray
             n_timesteps × n_data × d_observations array of measurements
 
         Returns
         -------
-        predicted_states: np.array
+        predicted_states: np.ndarray
             1 × n_data × d_states array of predicted latent states
-        predicted_observations: np.array
+        predicted_observations: np.ndarray
             1 × n_data × d_observations array of predicted measurements
 
         See Also
@@ -890,10 +783,7 @@ class MMLinGaussSS_marginalizable:
         next_states = np.zeros(shape=(1, *states.shape[1:]))
         next_observations = np.zeros(shape=(1, *observations.shape[1:]))
         these_states = states[-1]
-        assert assignment_probs.shape == (
-            self.n_clusters,
-            these_states.shape[0],
-        )
+        assert assignment_probs.shape == (self.n_clusters, these_states.shape[0])
         for i in range(self.n_clusters):
             next_states_c = these_states @ self.transition_matrices[i]
             next_observations_c = next_states_c @ self.measurement_matrices[i]
@@ -901,14 +791,13 @@ class MMLinGaussSS_marginalizable:
                 np.expand_dims(assignment_probs[i], axis=-1), next_states_c
             )
             next_observations += np.multiply(
-                np.expand_dims(assignment_probs[i], axis=-1),
-                next_observations_c,
+                np.expand_dims(assignment_probs[i], axis=-1), next_observations_c
             )
         return next_states, next_observations
 
     def initial_full_data_cluster_assignment(
-        self, *, states: np.array = None, observations: np.array = None
-    ) -> np.array:
+        self, *, states=None, observations=None
+    ) -> np.ndarray:
         """Hard assignment of each data instance to a cluster according to
         only data available initially (both hidden and observed)
 
@@ -941,8 +830,8 @@ class MMLinGaussSS_marginalizable:
         return assignments
 
     def predictions_from_initial_data(
-        self, *, states: np.array = None, observations: np.array = None
-    ) -> tuple[np.array, np.array]:
+        self, *, states=None, observations=None
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Predicted states and observations given only initial data, based
         on cluster assignment from inital data
 
@@ -962,9 +851,7 @@ class MMLinGaussSS_marginalizable:
         assignments = self.initial_full_data_cluster_assignment(
             states=states, observations=observations
         )
-        predicted_states = np.zeros_like(
-            self.states if states is None else states
-        )
+        predicted_states = np.zeros_like(self.states if states is None else states)
         predicted_observations = np.zeros_like(
             self.observations if observations is None else observations
         )
@@ -974,29 +861,21 @@ class MMLinGaussSS_marginalizable:
                 predicted_states.shape[0],
                 self.states[0, i, :],
                 self.transition_matrices[assignments[i]],
-            ).reshape(
-                predicted_states.shape[0],
-                self.d_states,
-            )
-            assert np.array_equal(
-                predicted_states[0, i, :], self.states[0, i, :]
-            )
+            ).reshape(predicted_states.shape[0], self.d_states)
+            assert np.array_equal(predicted_states[0, i, :], self.states[0, i, :])
 
             predicted_observations[:, i, :] = statespace.mmX(
                 predicted_observations.shape[0],
                 self.states[0, i, :],
                 self.transition_matrices[assignments[i]],
                 self.measurement_matrices[assignments[i]],
-            ).reshape(
-                predicted_observations.shape[0],
-                self.d_observations,
-            )
+            ).reshape(predicted_observations.shape[0], self.d_observations)
 
         return predicted_states, predicted_observations
 
     def observed_condl_log_lik_first_T0_steps(
-        self, c: int, T0: int, *, observations: np.array = None
-    ) -> np.array:
+        self, c: int, T0: int, *, observations=None
+    ) -> np.ndarray:
         """p(x|c), this marginalizes out the hidden states for a single
         state space model component
 
@@ -1048,8 +927,8 @@ class MMLinGaussSS_marginalizable:
         )
 
     def observed_conditional_log_likelihoods(
-        self, c: int, observations: np.array = None
-    ) -> np.array:
+        self, c: int, observations=None
+    ) -> np.ndarray:
         """p(x|c), this marginalizes out the hidden states for a single
         state space model component
 
@@ -1074,9 +953,7 @@ class MMLinGaussSS_marginalizable:
             c, self.n_timesteps, observations=observations
         )
 
-    def observed_cluster_propensities_over_time(
-        self, observations: np.array = None
-    ) -> np.array:
+    def observed_cluster_propensities_over_time(self, observations=None) -> np.ndarray:
         """Computes probabilities of cluster membership for each training
         datapoint given only first t timesteps, for 1 <= t <= T and
         only the observed data
@@ -1123,19 +1000,23 @@ class MMLinGaussSS_marginalizable:
         return pc_t
 
     def observations_mle_cluster_assignment(
-        self, *, return_probs: bool = False, observations: np.array = None
-    ) -> np.array:
+        self, *, return_probs: bool = False, observations=None
+    ):
         """Hard assignment of each data observation to a cluster according to
         maximum likelihood
 
         Parameters
         ----------
-        return_probs: np.array
-            n_data length array of cluster indices in {0,...,n_clusters-1}
-            or a tuple with additionally an n_data × n_clusters matrix of
-            cluster membership probabilities for each data point
+        return_probs: bool
+            should we also return cluster membership probabilities?
         observations
             (optionally) override the default of self.observations
+
+        Returns
+        -------
+        n_data length array of cluster indices in {0,...,n_clusters-1}
+            or a tuple with additionally an n_data × n_clusters matrix of
+            cluster membership probabilities for each data point
 
         See also
         --------
@@ -1158,8 +1039,7 @@ class MMLinGaussSS_marginalizable:
         assignments = np.argmax(cluster_likelihoods, axis=0)
         if return_probs:
             probs = np.divide(
-                cluster_likelihoods,
-                np.sum(cluster_likelihoods, axis=0, keepdims=True),
+                cluster_likelihoods, np.sum(cluster_likelihoods, axis=0, keepdims=True)
             )
             return assignments, probs
         return assignments
@@ -1172,16 +1052,16 @@ class MMLinGaussSS_marginalizable:
         nopython=True,
     )
     def regress(
-        input_exogenous: np.array, output_endogenous: np.array
-    ) -> tuple[np.array, np.array]:
+        input_exogenous: np.ndarray, output_endogenous: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Finds the MLE estimates A_hat,S_hat for A,S
         where output|input ~ N(input*A, S)
 
         Parameters
         ----------
-        input_exogenous: np.array
+        input_exogenous: np.ndarray
             n_data × in_dim array of inputs
-        output_endogenous: np.array
+        output_endogenous: np.ndarray
             n_data × out_dim array of outputs
 
         Returns
@@ -1191,26 +1071,22 @@ class MMLinGaussSS_marginalizable:
             out_dim × out_dim covariance matrix S_hat
 
         """
-        A_hat = np.linalg.lstsq(input_exogenous, output_endogenous, rcond=-1)[
-            0
-        ]
-        S_hat = np.cov(
-            output_endogenous - input_exogenous @ A_hat, rowvar=False
-        )
+        A_hat = np.linalg.lstsq(input_exogenous, output_endogenous, rcond=-1)[0]
+        S_hat = np.cov(output_endogenous - input_exogenous @ A_hat, rowvar=False)
         return A_hat, S_hat
 
     @staticmethod
     def regress_alpha(
-        input_exogenous: np.array, output_endogenous: np.array, alpha: float
-    ) -> tuple[np.array, np.array]:
+        input_exogenous: np.ndarray, output_endogenous: np.ndarray, alpha: float
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Finds the MLE estimates A_hat,S_hat for A,S
         where output|input ~ N(input*A, S)
 
         Parameters
         ----------
-        input_exogenous: np.array
+        input_exogenous: np.ndarray
             n_data × in_dim array of inputs
-        output_endogenous: np.array
+        output_endogenous: np.ndarray
             n_data × out_dim array of outputs
         alpha
             regularisation parameter for scikit-learn ridge regression
@@ -1227,9 +1103,7 @@ class MMLinGaussSS_marginalizable:
             .fit(input_exogenous, output_endogenous)
             .coef_.T
         )
-        S_hat = np.cov(
-            output_endogenous - input_exogenous @ A_hat, rowvar=False
-        )
+        S_hat = np.cov(output_endogenous - input_exogenous @ A_hat, rowvar=False)
         return A_hat, S_hat
 
     def E_step(self) -> int:
@@ -1245,9 +1119,7 @@ class MMLinGaussSS_marginalizable:
         """
         new_assignment = self.mle_cluster_assignment()
 
-        n_switches = int(
-            np.sum(np.not_equal(self.cluster_assignment, new_assignment))
-        )
+        n_switches = int(np.sum(np.not_equal(self.cluster_assignment, new_assignment)))
         self.cluster_assignment = new_assignment
         return n_switches
 
@@ -1258,9 +1130,7 @@ class MMLinGaussSS_marginalizable:
         as determined in the `E` step
         """
         for c in range(self.n_clusters):
-            self.cluster_propensities[c] = np.mean(
-                self.cluster_assignment == c
-            )
+            self.cluster_propensities[c] = np.mean(self.cluster_assignment == c)
             Zc = self.states[:, self.cluster_assignment == c, :]
             Xc = self.observations[:, self.cluster_assignment == c, :]
 
@@ -1269,43 +1139,33 @@ class MMLinGaussSS_marginalizable:
             self.init_state_means[c] = np.mean(Zc_init, axis=0)
             self.init_state_covs[c] = np.cov(Zc_init, rowvar=False)
 
-            Zprev = np.row_stack([*Zc[:-1, :, :]])
-            Znext = np.row_stack([*Zc[1:, :, :]])
-            trans_idx = np.isfinite(np.column_stack([Zprev, Znext])).all(
-                axis=1
-            )
+            Zprev = np.vstack([*Zc[:-1, :, :]])
+            Znext = np.vstack([*Zc[1:, :, :]])
+            trans_idx = np.isfinite(np.column_stack([Zprev, Znext])).all(axis=1)
             Zprev = Zprev[trans_idx, :]
             Znext = Znext[trans_idx, :]
             if self.alpha > 2 * np_eps:
-                (
-                    self.transition_matrices[c],
-                    self.transition_covs[c],
-                ) = MMLinGaussSS_marginalizable.regress_alpha(
-                    Zprev, Znext, self.alpha
+                (self.transition_matrices[c], self.transition_covs[c]) = (
+                    MMLinGaussSS_marginalizable.regress_alpha(Zprev, Znext, self.alpha)
                 )
             else:
-                (
-                    self.transition_matrices[c],
-                    self.transition_covs[c],
-                ) = MMLinGaussSS_marginalizable.regress(Zprev, Znext)
+                (self.transition_matrices[c], self.transition_covs[c]) = (
+                    MMLinGaussSS_marginalizable.regress(Zprev, Znext)
+                )
 
-            Xcs = np.row_stack([*Xc])
-            Zcs = np.row_stack([*Zc])
+            Xcs = np.vstack([*Xc])
+            Zcs = np.vstack([*Zc])
             meas_idx = np.isfinite(np.column_stack([Xcs, Zcs])).all(axis=1)
             Xcs = Xcs[meas_idx, :]
             Zcs = Zcs[meas_idx, :]
             if self.alpha > 2 * np_eps:
-                (
-                    self.measurement_matrices[c],
-                    self.measurement_covs[c],
-                ) = MMLinGaussSS_marginalizable.regress_alpha(
-                    Zcs, Xcs, self.alpha
+                (self.measurement_matrices[c], self.measurement_covs[c]) = (
+                    MMLinGaussSS_marginalizable.regress_alpha(Zcs, Xcs, self.alpha)
                 )
             else:
-                (
-                    self.measurement_matrices[c],
-                    self.measurement_covs[c],
-                ) = MMLinGaussSS_marginalizable.regress(Zcs, Xcs)
+                (self.measurement_matrices[c], self.measurement_covs[c]) = (
+                    MMLinGaussSS_marginalizable.regress(Zcs, Xcs)
+                )
 
     def train(self, *, verbose: bool = False, n_steps: int = 1000):
         """Trains with EM for n_steps or until convergence
@@ -1325,12 +1185,7 @@ class MMLinGaussSS_marginalizable:
             a trained version of the model
 
         """
-        if (
-            np.min(
-                np.bincount(self.cluster_assignment, minlength=self.n_clusters)
-            )
-            <= 3
-        ):
+        if np.min(np.bincount(self.cluster_assignment, minlength=self.n_clusters)) <= 3:
             if verbose:
                 print("Encountered near-empty cluster.")
             return self
@@ -1344,11 +1199,7 @@ class MMLinGaussSS_marginalizable:
                     print(f"Optimisation completed in {i} steps.")
                 break
             if (
-                np.min(
-                    np.bincount(
-                        self.cluster_assignment, minlength=self.n_clusters
-                    )
-                )
+                np.min(np.bincount(self.cluster_assignment, minlength=self.n_clusters))
                 <= 3
             ):
                 if verbose:
@@ -1400,13 +1251,7 @@ class MMLinGaussSS_marginalizable:
         if bool(use_cache):
             try:
                 pfile = sorted(
-                    glob.glob(
-                        os.path.join(
-                            home_dir,
-                            "tmp",
-                            f"mmm-{self.hex_hash}*",
-                        )
-                    ),
+                    glob.glob(os.path.join(home_dir, "tmp", f"mmm-{self.hex_hash}*")),
                     key=os.path.getmtime,
                 ).pop()
                 best_mdl = MMLinGaussSS_marginalizable.from_pickle(
@@ -1476,7 +1321,7 @@ class MMLinGaussSS_marginalizable:
         *,
         title: str = "Cluster Assignment Probability (using observed only) \n"
         "vs. Number of Time steps",
-        observations: np.array = None,
+        observations=None,
     ) -> None:
         """determine and plot the mean likelihood +/- 1sem
         of belonging to the ultimately assigned
@@ -1557,14 +1402,9 @@ class MMLinGaussSS_marginalizable:
         handles, labels = ax.get_legend_handles_labels()
         unique_labels_dict = dict(zip(labels, handles))
         ax.legend(
-            unique_labels_dict.values(),
-            unique_labels_dict.keys(),
-            fontsize="large",
+            unique_labels_dict.values(), unique_labels_dict.keys(), fontsize="large"
         )
-        plt.xticks(
-            ticks=range(self.n_timesteps),
-            labels=range(1, self.n_timesteps + 1),
-        )
+        plt.xticks(ticks=range(self.n_timesteps), labels=range(1, self.n_timesteps + 1))
         plt.title(title)
         ax.set_xlabel("Time steps")
         ax.set_ylabel("Probability")
@@ -1574,10 +1414,9 @@ class MMLinGaussSS_marginalizable:
         self,
         savename: str,
         *,
-        title: str = "Cluster Assignment Probability\n"
-        "vs. Number of Time steps",
-        observations: np.array = None,
-        states: np.array = None,
+        title: str = "Cluster Assignment Probability\nvs. Number of Time steps",
+        observations=None,
+        states=None,
     ) -> None:
         """determine and plot the mean likelihood +/- 1sem
         of belonging to the ultimately assigned
@@ -1659,21 +1498,16 @@ class MMLinGaussSS_marginalizable:
         handles, labels = ax.get_legend_handles_labels()
         unique_labels_dict = dict(zip(labels, handles))
         ax.legend(
-            unique_labels_dict.values(),
-            unique_labels_dict.keys(),
-            fontsize="large",
+            unique_labels_dict.values(), unique_labels_dict.keys(), fontsize="large"
         )
-        plt.xticks(
-            ticks=range(self.n_timesteps),
-            labels=range(1, self.n_timesteps + 1),
-        )
+        plt.xticks(ticks=range(self.n_timesteps), labels=range(1, self.n_timesteps + 1))
         plt.title(title)
         ax.set_xlabel("Time steps")
         ax.set_ylabel("Probability")
         plt.savefig(savename, transparent=True)
 
     def superimpose_model_on_plot(
-        self, ax: mpl.axes.Axes, std_param: dict[str, np.array]
+        self, ax: mpl.axes.Axes, std_param: dict[str, np.ndarray]
     ) -> None:
         for i, c in enumerate(string.ascii_uppercase[: self.n_clusters]):
             me, co = util.unstandardize_mean_and_cov(
@@ -1704,8 +1538,8 @@ class MMLinGaussSS_marginalizable:
             )
 
     def get_initial_means_and_stds(
-        self, std_param: dict[str, np.array] = None
-    ) -> dict[str, dict[str, np.array]]:
+        self, std_param=None
+    ) -> dict[str, dict[str, np.ndarray]]:
         """returns a dictionary with clusters as keys and dictionaries with
         keys "μ" & "σ", corresponding to the initial means and standard
         deviations of the features for that cluster according to the model;
@@ -1719,14 +1553,10 @@ class MMLinGaussSS_marginalizable:
             mx = mz @ self.measurement_matrices[j]
             cx = (
                 self.measurement_covs[j]
-                + self.measurement_matrices[j].T
-                @ cz
-                @ self.measurement_matrices[j]
+                + self.measurement_matrices[j].T @ cz @ self.measurement_matrices[j]
             )
             if std_param is not None:
-                mz, cz = util.unstandardize_mean_and_cov(
-                    mz, cz, params=std_param
-                )
+                mz, cz = util.unstandardize_mean_and_cov(mz, cz, params=std_param)
             mzx = np.concatenate([mz, mx])
             czx = np.concatenate(
                 [np.diag(np.atleast_2d(cz)), np.diag(np.atleast_2d(cx))]
@@ -1735,8 +1565,8 @@ class MMLinGaussSS_marginalizable:
         return μσ_dict
 
     def get_initial_diffs_means_and_stds(
-        self, std_param: dict[str, np.array] = None
-    ) -> dict[str, dict[str, np.array]]:
+        self, std_param=None
+    ) -> dict[str, dict[str, np.ndarray]]:
         """returns a dictionary with clusters as keys and dictionaries with
         keys "μ" & "σ", corresponding to the initial means and standard
         deviations of the initial differences of the features for that cluster
@@ -1779,13 +1609,12 @@ class MMLinGaussSS_marginalizable:
             CCΔzΔx = coeff @ CCz0z1x0x1 @ coeff.T
 
             if std_param is not None:
-                (
-                    mmΔzΔx[: self.d_states],
-                    CCΔzΔx[: self.d_states, : self.d_states],
-                ) = util.unstandardize_mean_and_cov_diffs(
-                    mmΔzΔx[: self.d_states],
-                    CCΔzΔx[: self.d_states, : self.d_states],
-                    params=std_param,
+                (mmΔzΔx[: self.d_states], CCΔzΔx[: self.d_states, : self.d_states]) = (
+                    util.unstandardize_mean_and_cov_diffs(
+                        mmΔzΔx[: self.d_states],
+                        CCΔzΔx[: self.d_states, : self.d_states],
+                        params=std_param,
+                    )
                 )
             μσ_Δ_dict[self.correspondence[j]] = {
                 "μ": mmΔzΔx,
@@ -1795,18 +1624,18 @@ class MMLinGaussSS_marginalizable:
 
     @staticmethod
     def plot_matrix(
-        mat: np.array,
+        mat: np.ndarray,
         *,
         show_colorbar: bool = False,
         show_labels: bool = True,
-        xticks: list = None,
-        xlabel: str = None,
-        yticks: list = None,
-        ylabel: str = None,
-        title: str = None,
+        xticks=None,
+        xlabel=None,
+        yticks=None,
+        ylabel=None,
+        title=None,
         fmt_str: str = "{:.2f}",
         figsize: tuple = (6.4, 4.8),
-        savename: os.PathLike | str = None,
+        savename=None,
         show: bool = False,
     ):
         mat = np.atleast_2d(mat)
@@ -1817,10 +1646,7 @@ class MMLinGaussSS_marginalizable:
         if xticks:
             ax.set_xticks(np.arange(len(xticks)), labels=xticks)
             plt.setp(
-                ax.get_xticklabels(),
-                rotation=-30,
-                ha="right",
-                rotation_mode="anchor",
+                ax.get_xticklabels(), rotation=-30, ha="right", rotation_mode="anchor"
             )
         if yticks is not None:
             ax.set_yticks(np.arange(len(yticks)), labels=yticks)
@@ -1860,20 +1686,14 @@ class MMLinGaussSS_marginalizable:
     def generate_model_plots(self, folder: str | os.PathLike, **kwargs):
         os.makedirs(
             os.path.join(
-                folder,
-                "{hh}-{nc}cl".format(hh=self.hex_hash, nc=self.n_clusters),
+                folder, "{hh}-{nc}cl".format(hh=self.hex_hash, nc=self.n_clusters)
             ),
             exist_ok=True,
         )
         self.plot_matrix(
             self.cluster_propensities[
                 np.argsort(
-                    np.array(
-                        [
-                            self.correspondence[i]
-                            for i in range(self.n_clusters)
-                        ]
-                    )
+                    np.array([self.correspondence[i] for i in range(self.n_clusters)])
                 )
             ],
             savename=os.path.join(
@@ -1897,20 +1717,14 @@ class MMLinGaussSS_marginalizable:
                     getattr(self, param)[c],
                     savename=os.path.join(
                         folder,
-                        "{hh}-{nc}cl".format(
-                            hh=self.hex_hash, nc=self.n_clusters
-                        ),
+                        "{hh}-{nc}cl".format(hh=self.hex_hash, nc=self.n_clusters),
                         "{hh}-{par}-{cl}.pdf".format(
-                            hh=self.hex_hash,
-                            par=param,
-                            cl=self.correspondence[c],
+                            hh=self.hex_hash, par=param, cl=self.correspondence[c]
                         ),
                     ),
                     title="Cluster {c} {param}".format(
                         c=self.correspondence[c],
-                        param=param[:-1]
-                        .replace("_", " ")
-                        .replace("matrice", "matrix"),
+                        param=param[:-1].replace("_", " ").replace("matrice", "matrix"),
                     ),
                     **kwargs,
                 )

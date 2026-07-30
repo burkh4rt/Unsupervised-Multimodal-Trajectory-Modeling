@@ -42,37 +42,27 @@ class StateSpaceLinearGaussian(ssm.StateSpaceModel):
 
         self.state_init = {
             "mean": np.nanmean(states[0], axis=0),
-            "cov": np.cov(
-                util.take_finite_along_axis(states[0]), rowvar=False
-            ),
+            "cov": np.cov(util.take_finite_along_axis(states[0]), rowvar=False),
         }
 
         self.state_model = dict(
             zip(
                 ["coeff", "covar"],
                 util.regress_alpha(
-                    np.row_stack(states[:-1]),
-                    np.row_stack(states[1:]),
-                    self.alpha,
+                    np.vstack(states[:-1]), np.vstack(states[1:]), self.alpha
                 )
                 if self.alpha > 2 * np_eps
-                else util.regress(
-                    np.row_stack(states[:-1]), np.row_stack(states[1:])
-                ),
+                else util.regress(np.vstack(states[:-1]), np.vstack(states[1:])),
             )
         )
         self.measurement_model = dict(
             zip(
                 ["coeff", "covar"],
                 util.regress_alpha(
-                    np.row_stack(states[:]),
-                    np.row_stack(measurements[:]),
-                    self.alpha,
+                    np.vstack(states[:]), np.vstack(measurements[:]), self.alpha
                 )
                 if self.alpha > 2 * np_eps
-                else util.regress(
-                    np.row_stack(states[:]), np.row_stack(measurements[:])
-                ),
+                else util.regress(np.vstack(states[:]), np.vstack(measurements[:])),
             )
         )
 
@@ -96,7 +86,7 @@ class StateSpaceLinearGaussian(ssm.StateSpaceModel):
         self.alpha = pickle_dict["alpha"] if "alpha" in pickle_dict else 0
         return self
 
-    def score(self, data: tuple[np.ndarray, np.ndarray] = None):
+    def score(self, data=None):
         if data is None:
             data = self.data
         states, measurements = data
@@ -125,7 +115,7 @@ class StateSpaceLinearGaussian(ssm.StateSpaceModel):
             np.zeros(states.shape[1]),
         )
 
-    def score_alt(self, data: tuple[np.ndarray, np.ndarray] = None):
+    def score_alt(self, data=None):
         if data is None:
             data = self.data
         states, measurements = data

@@ -10,6 +10,7 @@ import itertools
 import os
 import re
 import string
+from collections.abc import Iterator
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -31,16 +32,16 @@ home_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def regress(
-    X: np.array, Y: np.array, eps: float = 1e-6
-) -> tuple[np.array, np.array]:
+    X: np.ndarray, Y: np.ndarray, eps: float = 1e-6
+) -> tuple[np.ndarray, np.ndarray]:
     """Finds the MLE estimates A_hat, S_hat for A, S where Y|X ~ N(X*A, S);
     protected against missing data
 
     Parameters
     ----------
-    X: np.array
+    X: np.ndarray
         n_data × X_dim array of inputs
-    Y: np.array
+    Y: np.ndarray
         n_data × Y_dim array of outputs
     eps: float
         regularisation parameter
@@ -54,24 +55,22 @@ def regress(
     """
     idx = np.isfinite(np.column_stack((X, Y))).all(axis=-1)
     X, Y = X[idx], Y[idx]
-    A_hat = np.linalg.lstsq(
-        X.T @ X + eps * np.eye(X.shape[1]), X.T @ Y, rcond=-1
-    )[0]
+    A_hat = np.linalg.lstsq(X.T @ X + eps * np.eye(X.shape[1]), X.T @ Y, rcond=-1)[0]
     S_hat = np.cov(Y - X @ A_hat, rowvar=False)
     return A_hat, S_hat
 
 
 def regress_alpha(
-    X: np.array, Y: np.array, alpha: float
-) -> tuple[np.array, np.array]:
+    X: np.ndarray, Y: np.ndarray, alpha: float
+) -> tuple[np.ndarray, np.ndarray]:
     """Finds the MLE estimates A_hat,S_hat for A,S
     where output|input ~ N(input*A, S)
 
     Parameters
     ----------
-    X: np.array
+    X: np.ndarray
         n_data × in_dim array of inputs
-    Y: np.array
+    Y: np.ndarray
         n_data × out_dim array of outputs
     alpha
         regularisation parameter for scikit-learn ridge regression
@@ -86,15 +85,13 @@ def regress_alpha(
     idx = np.isfinite(np.column_stack((X, Y))).all(axis=-1)
     X, Y = X[idx], Y[idx]
     A_hat = (
-        skl_lm.Ridge(alpha=alpha, fit_intercept=False, copy_X=True)
-        .fit(X, Y)
-        .coef_.T
+        skl_lm.Ridge(alpha=alpha, fit_intercept=False, copy_X=True).fit(X, Y).coef_.T
     )
     S_hat = np.cov(Y - X @ A_hat, rowvar=False)
     return A_hat, S_hat
 
 
-def nancat(arr1: np.array, arr2: np.array) -> np.array:
+def nancat(arr1: np.ndarray, arr2: np.ndarray) -> np.ndarray:
     """add nan's to array with shorter time length as needed in order to
     concatenate along dimension 1
 
@@ -114,24 +111,14 @@ def nancat(arr1: np.array, arr2: np.array) -> np.array:
     assert arr1.shape[2:] == arr2.shape[2:]
     arr1_cat = (
         np.concatenate(
-            [
-                arr1,
-                np.tile(
-                    np.nan, (arr2.shape[0] - arr1.shape[0], *arr1.shape[1:])
-                ),
-            ]
+            [arr1, np.tile(np.nan, (arr2.shape[0] - arr1.shape[0], *arr1.shape[1:]))]
         )
         if arr2.shape[0] > arr1.shape[0]
         else arr1
     )
     arr2_cat = (
         np.concatenate(
-            [
-                arr2,
-                np.tile(
-                    np.nan, (arr1.shape[0] - arr2.shape[0], *arr2.shape[1:])
-                ),
-            ]
+            [arr2, np.tile(np.nan, (arr1.shape[0] - arr2.shape[0], *arr2.shape[1:]))]
         )
         if arr1.shape[0] > arr2.shape[0]
         else arr2
@@ -139,12 +126,7 @@ def nancat(arr1: np.array, arr2: np.array) -> np.array:
     return np.concatenate([arr1_cat, arr2_cat], axis=1)
 
 
-def standardize(
-    arr: np.array,
-    *,
-    params: dict[str, np.array] = None,
-    return_params: bool = False,
-):
+def standardize(arr: np.ndarray, *, params=None, return_params: bool = False):
     """standardize array elements to [0.1, 1] along the 3rd axis
 
     Parameters
@@ -178,10 +160,7 @@ def standardize(
         return arr_standardized
 
 
-def unstandardize(
-    arr: np.array,
-    params: dict[str, np.array],
-) -> np.array:
+def unstandardize(arr: np.ndarray, params: dict[str, np.ndarray]) -> np.ndarray:
     """inverse of standardize on array arr
 
     Parameters
@@ -210,8 +189,8 @@ def unstandardize(
 
 
 def unstandardize_mean_and_cov(
-    mean: np.array, cov: np.array, params: dict[str, np.array]
-) -> tuple[np.array, np.array]:
+    mean: np.ndarray, cov: np.ndarray, params: dict[str, np.ndarray]
+) -> tuple[np.ndarray, np.ndarray]:
     """calculate unstandardized mean and covariance of a Gaussian distribution
     with standardized mean and covariance
 
@@ -241,8 +220,8 @@ def unstandardize_mean_and_cov(
 
 
 def unstandardize_mean_and_cov_diffs(
-    mean_diff: np.array, cov_diff: np.array, params: dict[str, np.array]
-) -> tuple[np.array, np.array]:
+    mean_diff: np.ndarray, cov_diff: np.ndarray, params: dict[str, np.ndarray]
+) -> tuple[np.ndarray, np.ndarray]:
     """calculate unstandardized mean and covariance of a Gaussian distribution
     with standardized mean and covariance
 
@@ -269,10 +248,10 @@ def unstandardize_mean_and_cov_diffs(
 
 
 def normalize(
-    arr: np.array,
+    arr: np.ndarray,
     eps: float = np.finfo(float).eps,
     *,
-    params: dict[str, np.array] = None,
+    params=None,
     return_params: bool = False,
 ):
     """normalize array elements to have mean 0 & stddev ~1 along the 3rd axis
@@ -310,10 +289,7 @@ def normalize(
         return arr
 
 
-def unnormalize(
-    arr: np.array,
-    params: dict[str, np.array],
-) -> np.array:
+def unnormalize(arr: np.ndarray, params: dict[str, np.ndarray]) -> np.ndarray:
     """inverse of normalize on array arr
 
     Parameters
@@ -339,7 +315,7 @@ def unnormalize(
     return arr_unnormalized
 
 
-def take_finite_along_axis(arr: np.array, axis: int = 0) -> np.array:
+def take_finite_along_axis(arr: np.ndarray, axis: int = 0) -> np.ndarray:
     """take the n-1 dimensional slices along axis `axis` only for slices
     where every element is finite
 
@@ -353,9 +329,9 @@ def take_finite_along_axis(arr: np.array, axis: int = 0) -> np.array:
     Example
     -------
     ```
-    eg_arr = np.concatenate(
-        [np.arange(7), np.repeat(np.nan, 3), np.arange(2)]
-    ).reshape(6, 2)
+    eg_arr = np.concatenate([np.arange(7), np.repeat(np.nan, 3), np.arange(2)]).reshape(
+        6, 2
+    )
     np.array_equal(
         take_finite_along_axis(eg_arr, axis=0),
         array([[0.0, 1.0], [2.0, 3.0], [4.0, 5.0], [0.0, 1.0]]),
@@ -373,15 +349,13 @@ def take_finite_along_axis(arr: np.array, axis: int = 0) -> np.array:
     return np.take(
         arr,
         np.argwhere(
-            np.isfinite(arr).all(
-                axis=tuple(a for a in range(arr.ndim) if a != axis)
-            )
+            np.isfinite(arr).all(axis=tuple(a for a in range(arr.ndim) if a != axis))
         ),
         axis,
     ).reshape(tuple(new_shape))
 
 
-def mask_all_but_time_i(arr: np.array, i: int) -> np.array:
+def mask_all_but_time_i(arr: np.ndarray, i: int) -> np.ndarray:
     """takes a standardized n_time × n_data × dim_data array and returns an
     n_time × n_data × dim_data array with only data from time i and all else
     set to nan
@@ -405,7 +379,7 @@ def mask_all_but_time_i(arr: np.array, i: int) -> np.array:
     return arr_m
 
 
-def mask_all_but_time_i_vect(arr: np.array, i: np.array) -> np.array:
+def mask_all_but_time_i_vect(arr: np.ndarray, i: np.ndarray) -> np.ndarray:
     """vectorized form of mask_all_but_time_i"""
     assert arr.shape[1] == len(i)
     arr_m = np.nan * np.ones_like(arr)
@@ -414,7 +388,7 @@ def mask_all_but_time_i_vect(arr: np.array, i: np.array) -> np.array:
     return arr_m
 
 
-def parcellate_arrays(*args) -> np.array:
+def parcellate_arrays(*args) -> Iterator[np.ndarray]:
     """parcellates all inputted arrays
 
     Parameters
@@ -424,7 +398,7 @@ def parcellate_arrays(*args) -> np.array:
 
     Returns
     -------
-    tuple of arrays parcellated with parcellate_array_to_snapshots
+    generator of arrays parcellated with parcellate_array_to_snapshots
 
     See Also
     --------
@@ -440,7 +414,7 @@ def parcellate_arrays(*args) -> np.array:
     )
 
 
-def weighted_mean_and_covariance(values: np.array, weights: np.array):
+def weighted_mean_and_covariance(values: np.ndarray, weights: np.ndarray):
     """calculated the weighted mean and covariance of `values` with weights
     `weights`
 
@@ -462,12 +436,8 @@ def weighted_mean_and_covariance(values: np.array, weights: np.array):
     assert (weights >= 0).all()
 
     # weighted mean
-    m_c_num = np.einsum(
-        "ijk,j->ik", np.nan_to_num(values), weights, optimize=True
-    )
-    m_c_denom = np.einsum(
-        "ijk,j->ik", np.isfinite(values), weights, optimize=True
-    )
+    m_c_num = np.einsum("ijk,j->ik", np.nan_to_num(values), weights, optimize=True)
+    m_c_denom = np.einsum("ijk,j->ik", np.isfinite(values), weights, optimize=True)
     m_c = m_c_num / m_c_denom
 
     # weighted covariance
@@ -492,26 +462,19 @@ def weighted_mean_and_covariance(values: np.array, weights: np.array):
 
 
 def plot_metric_vs_clusters_over_time(
-    metric: np.array,
-    assignments: np.array,
+    metric: np.ndarray,
+    assignments: np.ndarray,
     metric_name: str,
     *,
     savename: str | os.PathLike,
     title: str,
-    xticks: np.array = None,
+    xticks=None,
     xlabel: str = "Time steps",
-    xlim: tuple = None,
-    ylim: tuple = None,
-    legend_loc: str = None,
+    xlim=None,
+    ylim=None,
+    legend_loc=None,
     legend_bbox_to_anchor=(1.5, 1),
-    colors: tuple = (
-        "#0072CE",
-        "#E87722",
-        "#64A70B",
-        "#93328E",
-        "#A81538",
-        "#4E5B31",
-    ),
+    colors: tuple = ("#0072CE", "#E87722", "#64A70B", "#93328E", "#A81538", "#4E5B31"),
     show: bool = False,
 ) -> None:
     """plot the mean likelihood +/- 1sem
@@ -528,10 +491,7 @@ def plot_metric_vs_clusters_over_time(
 
     for i, c in enumerate(string.ascii_uppercase[:n_clusters]):
         v_c = metric[:, c == assignments]
-        c_mean = np.nanmean(
-            v_c,
-            axis=1,
-        )
+        c_mean = np.nanmean(v_c, axis=1)
         c_sem = sp_stats.sem(v_c, axis=1, nan_policy="omit")
 
         plt.errorbar(
@@ -558,9 +518,7 @@ def plot_metric_vs_clusters_over_time(
         unique_labels_dict.values(),
         unique_labels_dict.keys(),
         fontsize="large",
-        loc=legend_loc
-        if legend_loc is not None
-        else plt.rcParams["legend.loc"],
+        loc=legend_loc if legend_loc is not None else plt.rcParams["legend.loc"],
         bbox_to_anchor=legend_bbox_to_anchor,
     )
     plt.xticks(
@@ -577,17 +535,17 @@ def plot_metric_vs_clusters_over_time(
     ax.set_ylabel(metric_name, fontsize="large")
     plt.savefig(savename, bbox_inches="tight", transparent=True)
     if show:
-        plt.show(bbox_inches="tight")
+        plt.show()
 
 
 def histograms_by_cluster(
     *,
     savename: str | os.PathLike = "",
     title: str = "Histograms by cluster",
-    metrics: np.array = None,
-    metric_names: list = None,
-    clusters: np.array = None,
-    cluster_ordering: np.array = None,
+    metrics=None,
+    metric_names=None,
+    clusters=None,
+    cluster_ordering=None,
     show: bool = False,
     nrows: int = 2,
     ncols: int = 3,
@@ -598,14 +556,7 @@ def histograms_by_cluster(
     normal_overlay: bool = False,
     μσ_overlay=None,
     tighten=True,
-    colors: tuple = (
-        "#0072CE",
-        "#E87722",
-        "#64A70B",
-        "#93328E",
-        "#A81538",
-        "#4E5B31",
-    ),
+    colors: tuple = ("#0072CE", "#E87722", "#64A70B", "#93328E", "#A81538", "#4E5B31"),
     alpha: float = 0.5,
 ) -> None:
     """creates subplots of overlapping histograms by cluster assignment
@@ -693,8 +644,7 @@ def histograms_by_cluster(
                 )
                 if mean_overlay:
                     axs[i, j].axvline(
-                        np.nanmean(metrics[clusters == c, m_num]),
-                        color=colors[k],
+                        np.nanmean(metrics[clusters == c, m_num]), color=colors[k]
                     )
                 if normal_overlay:
                     μ = np.nanmean(metrics[clusters == c, m_num])
@@ -702,9 +652,7 @@ def histograms_by_cluster(
                     mn, mx = axs[i, j].get_xlim()
                     pts = np.linspace(mn, mx, 1000)
                     axs[i, j].plot(
-                        pts,
-                        sp_stats.norm.pdf(pts, loc=μ, scale=σ),
-                        color=colors[k],
+                        pts, sp_stats.norm.pdf(pts, loc=μ, scale=σ), color=colors[k]
                     )
                 if μσ_overlay is not None:
                     mn, mx = axs[i, j].get_xlim()
@@ -743,15 +691,15 @@ def histograms_by_cluster(
     if len(savename) > 0:
         fig.savefig(savename, bbox_inches="tight", transparent=True)
     if show:
-        plt.show(bbox_inches="tight")
+        plt.show()
 
 
 def histogram(
-    metrics: np.array = None,
+    metrics=None,
     *,
     savename: str | os.PathLike = "",
     show: bool = False,
-    title: str = None,
+    title=None,
     density: bool = True,
     nbins: int = 25,
     figsize: tuple = (6.4, 4.8),
@@ -778,13 +726,7 @@ def histogram(
     """
 
     fig, axs = plt.subplots(layout="constrained", figsize=figsize)
-    axs.hist(
-        x=metrics.ravel(),
-        bins=nbins,
-        color="#0072CE",
-        alpha=1.0,
-        density=density,
-    )
+    axs.hist(x=metrics.ravel(), bins=nbins, color="#0072CE", alpha=1.0, density=density)
     axs.spines["right"].set_visible(False)
     axs.spines["top"].set_visible(False)
     if title is not None:
@@ -799,19 +741,19 @@ def pies_by_cluster(
     *,
     savename: str | os.PathLike = "",
     title: str = "",
-    categories: np.array = None,
-    category_ordering: np.array = None,
-    category_legend_names: dict = None,
-    clusters: np.array = None,
-    cluster_ordering: np.array = None,
+    categories=None,
+    category_ordering=None,
+    category_legend_names=None,
+    clusters=None,
+    cluster_ordering=None,
     show: bool = False,
-    nrows: int = None,
-    ncols: int = None,
-    slice_colors: tuple[str] = None,
+    nrows=None,
+    ncols=None,
+    slice_colors=None,
     legend_bbox_to_anchor=(0.0, 0.0),
-    fig_length: float = None,
-    fig_width: float = None,
-    halo_colors: tuple[str] = None,
+    fig_length=None,
+    fig_width=None,
+    halo_colors=None,
 ) -> None:
     """creates subplots of pie charts
 
@@ -866,9 +808,7 @@ def pies_by_cluster(
         slice_colors = plt.colormaps["cividis"].colors
         slice_colors = np.flipud(
             np.array(slice_colors)[
-                np.linspace(
-                    0, len(slice_colors) - 1, len(category_labels)
-                ).astype(int)
+                np.linspace(0, len(slice_colors) - 1, len(category_labels)).astype(int)
             ]
         ).tolist()
 
@@ -884,8 +824,7 @@ def pies_by_cluster(
             patches, _ = axs[i, j].pie(
                 [
                     np.logical_and(
-                        categories == cat,
-                        clusters == cluster_labels[m_num],
+                        categories == cat, clusters == cluster_labels[m_num]
                     ).sum()
                     for cat in category_labels
                 ],
@@ -896,11 +835,7 @@ def pies_by_cluster(
             if halo_colors is not None:
                 axs[i, j].add_patch(
                     plt.Circle(
-                        (0, 0),
-                        1.0,
-                        color=halo_colors[m_num],
-                        linewidth=1.5,
-                        fill=False,
+                        (0, 0), 1.0, color=halo_colors[m_num], linewidth=1.5, fill=False
                     )
                 )
             axs[i, j].set_title(cluster_labels[m_num])
@@ -922,18 +857,18 @@ def pies_by_cluster(
     if len(savename) > 0:
         fig.savefig(savename, bbox_inches="tight", transparent=True)
     if show:
-        plt.show(bbox_inches="tight")
+        plt.show()
 
 
 def pie(
-    assignments: np.array,
+    assignments: np.ndarray,
     *,
-    savename: str | os.PathLike = None,
+    savename=None,
     title: str = "",
-    cluster_ordering: np.array = None,
+    cluster_ordering=None,
     show: bool = False,
     legend_bbox_to_anchor=(1.2, 1.0),
-    colors: tuple[str] = (
+    colors: tuple[str, ...] = (
         "#0072CE",
         "#E87722",
         "#64A70B",
@@ -971,24 +906,21 @@ def pie(
         explode=[0.03] * len(cluster_labels),
     )
     axs.legend(
-        patches,
-        cluster_labels,
-        loc="upper right",
-        bbox_to_anchor=legend_bbox_to_anchor,
+        patches, cluster_labels, loc="upper right", bbox_to_anchor=legend_bbox_to_anchor
     )
     if title is not None:
         axs.set_title(title, fontsize="large")
     if savename is not None:
         fig.savefig(savename, bbox_inches="tight", transparent=True)
     if show:
-        plt.show(bbox_inches="tight")
+        plt.show()
 
 
 def summarize_metric_vs_cluster(
-    metric: np.array,
-    cluster_assignment: np.array,
-    names: list = None,
-    cluster_ordering: np.array = None,
+    metric: np.ndarray,
+    cluster_assignment: np.ndarray,
+    names=None,
+    cluster_ordering=None,
 ) -> None:
     """creates aggregate summary statistics grouped by cluster
 
@@ -1030,23 +962,17 @@ def summarize_metric_vs_cluster(
                 (
                     f"{a}_vs_{b}",
                     *sp_stats.ttest_ind(
-                        m_x_c[a],
-                        m_x_c[b],
-                        nan_policy="omit",
-                        alternative="two-sided",
+                        m_x_c[a], m_x_c[b], nan_policy="omit", alternative="two-sided"
                     ).pvalue,
                 )
                 for a, b in itertools.combinations(m_x_c.keys(), 2)
             ],
-            columns=[
-                "comparison",
-                *[name + "_pval" for name in names],
-            ],
+            columns=["comparison", *[name + "_pval" for name in names]],
         ).set_index("comparison")
     )
 
 
-def get_finite_length(arr: np.array) -> np.array:
+def get_finite_length(arr: np.ndarray) -> np.ndarray:
     """takes a standardized n_time × n_data × dim_data array and returns an
     n_data array containing the length of the longest trajectory with all
     full data starting from index 0 / initial time
@@ -1065,7 +991,7 @@ def get_finite_length(arr: np.array) -> np.array:
     -------
     ```
     arr = np.arange(24).reshape((2, 3, 4)).astype(float)
-    arr[0,1] = arr[1,2] = np.nan
+    arr[0, 1] = arr[1, 2] = np.nan
     assert all(get_finite_length(arr) == np.array([2, 0, 1]))
     ```
     """
@@ -1076,7 +1002,7 @@ def get_finite_length(arr: np.array) -> np.array:
     )
 
 
-def take_final_finite(arr: np.array) -> np.array:
+def take_final_finite(arr: np.ndarray) -> np.ndarray:
     """takes a standardized n_time × n_data × dim_data array and returns an
     n_data × dim_data array with the last full set of finite measurements for
     each person in the array `arr`
@@ -1095,7 +1021,7 @@ def take_final_finite(arr: np.array) -> np.array:
     -------
     ```
     arr = np.arange(24).reshape(2, 3, 4).astype(float)
-    arr[1,1:2] = np.nan
+    arr[1, 1:2] = np.nan
     assert all(take_final_finite(arr) == np.array([2, 0, 1]))
     ```
     """
@@ -1105,7 +1031,7 @@ def take_final_finite(arr: np.array) -> np.array:
     return np.stack([arr[i, j] for i, j in zip(final_idx, range(len(arr[0])))])
 
 
-def add_constant_where_finite(arr: np.array) -> np.array:
+def add_constant_where_finite(arr: np.ndarray) -> np.ndarray:
     """takes a standardized n_time × n_data × dim_data array and returns an
     n_time × n_data × (dim_data+1) array with a constant appended
 
@@ -1122,11 +1048,7 @@ def add_constant_where_finite(arr: np.array) -> np.array:
     """
 
     return np.concatenate(
-        [
-            arr,
-            np.where(np.isfinite(arr).any(axis=-1)[..., None], 1.0, np.nan),
-        ],
-        axis=-1,
+        [arr, np.where(np.isfinite(arr).any(axis=-1)[..., None], 1.0, np.nan)], axis=-1
     )
 
 
@@ -1152,8 +1074,8 @@ def format_names(n_list: list[str], elide_at: int = 42) -> list[str]:
 
 
 def plot_weighted_means_2d_trajectories(
-    weights: np.array,
-    values: np.array,
+    weights: np.ndarray,
+    values: np.ndarray,
     colors: list,
     saveloc: str | os.PathLike,
     *,
@@ -1165,7 +1087,7 @@ def plot_weighted_means_2d_trajectories(
     soft_assignment: bool = True,
     cov_alpha: float = 0.05,
     conf_thresh: float = 0.68,
-    elide_at: list = None,
+    elide_at=None,
 ) -> None:
     """
 
@@ -1260,9 +1182,7 @@ def plot_weighted_means_2d_trajectories(
         for t in range(
             values.shape[0] if not elide_at or not elide_at[i] else elide_at[i]
         ):
-            zval = sp_stats.multivariate_normal(mean=m_c[t], cov=v_c[t]).pdf(
-                pos
-            )
+            zval = sp_stats.multivariate_normal(mean=m_c[t], cov=v_c[t]).pdf(pos)
             res = sp_opt.minimize(
                 lambda thr: np.square(
                     zval[zval >= thr].sum() / zval.sum() - conf_thresh
@@ -1284,7 +1204,7 @@ def plot_weighted_means_2d_trajectories(
                     "#4E5B31",
                 )[i],
                 linewidths=1,
-                levels=[float(res.x), np.inf],
+                levels=[float(res.x.item()), np.inf],
                 alpha=cov_alpha,
             )
 
@@ -1300,8 +1220,4 @@ def plot_weighted_means_2d_trajectories(
     ax.set_xlabel(xlabel, fontsize="large")
     ax.set_ylabel(ylabel, fontsize="large")
     plt.tight_layout()
-    fig.savefig(
-        saveloc,
-        bbox_inches="tight",
-        transparent=True,
-    )
+    fig.savefig(saveloc, bbox_inches="tight", transparent=True)
