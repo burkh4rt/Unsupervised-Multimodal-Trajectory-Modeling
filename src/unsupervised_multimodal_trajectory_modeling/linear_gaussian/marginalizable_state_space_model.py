@@ -21,6 +21,7 @@ distributions when we encounter hidden variables or missing data.
 """
 
 import warnings
+from collections.abc import Callable
 
 import numba as nb
 import numpy as np
@@ -30,16 +31,11 @@ warnings.simplefilter("ignore")
 
 
 @nb.jit(
-    nb.float64[:, :](
-        nb.int64,
-        nb.float64[:, :],
-        nb.float64[:, :],
-        nb.float64[:, :],
-    ),
+    nb.float64[:, :](nb.int64, nb.float64[:, :], nb.float64[:, :], nb.float64[:, :]),
     nopython=True,
     parallel=True,
 )
-def _CZZii(i: int, S: np.array, A: np.array, Γ: np.array) -> np.array:
+def _CZZii(i: int, S: np.ndarray, A: np.ndarray, Γ: np.ndarray) -> np.ndarray:
     """Covariance matrix for the ith hidden random variable (1-indexed)
 
     Parameters
@@ -66,16 +62,12 @@ def _CZZii(i: int, S: np.array, A: np.array, Γ: np.array) -> np.array:
 
 @nb.jit(
     nb.float64[:, :](
-        nb.int64,
-        nb.int64,
-        nb.float64[:, :],
-        nb.float64[:, :],
-        nb.float64[:, :],
+        nb.int64, nb.int64, nb.float64[:, :], nb.float64[:, :], nb.float64[:, :]
     ),
     nopython=True,
     parallel=True,
 )
-def _CZZij(i: int, j: int, S: np.array, A: np.array, Γ: np.array) -> np.array:
+def _CZZij(i: int, j: int, S: np.ndarray, A: np.ndarray, Γ: np.ndarray) -> np.ndarray:
     """Covariance between the ith and jth hidden random variables (1-indexed)
 
     Parameters
@@ -105,7 +97,7 @@ def _CZZij(i: int, j: int, S: np.array, A: np.array, Γ: np.array) -> np.array:
         return _CZZij(j, i, S, A, Γ).T
 
 
-def CZZ(T: int, S: np.array, A: np.array, Γ: np.array) -> np.array:
+def CZZ(T: int, S: np.ndarray, A: np.ndarray, Γ: np.ndarray) -> np.ndarray:
     """Covariance for the full hidden autoregressive process
 
     Parameters
@@ -126,16 +118,13 @@ def CZZ(T: int, S: np.array, A: np.array, Γ: np.array) -> np.array:
 
     """
     return np.block(
-        [
-            [_CZZij(i, j, S, A, Γ) for j in range(1, T + 1)]
-            for i in range(1, T + 1)
-        ]
+        [[_CZZij(i, j, S, A, Γ) for j in range(1, T + 1)] for i in range(1, T + 1)]
     )
 
 
 def _CZX(
-    T: int, S: np.array, A: np.array, Γ: np.array, H: np.array
-) -> np.array:
+    T: int, S: np.ndarray, A: np.ndarray, Γ: np.ndarray, H: np.ndarray
+) -> np.ndarray:
     """Covariance between the full hidden and observed processes
     Z & X, respectively
 
@@ -159,10 +148,7 @@ def _CZX(
 
     """
     return np.block(
-        [
-            [_CZZij(i, j, S, A, Γ) @ H for j in range(1, T + 1)]
-            for i in range(1, T + 1)
-        ]
+        [[_CZZij(i, j, S, A, Γ) @ H for j in range(1, T + 1)] for i in range(1, T + 1)]
     )
 
 
@@ -182,12 +168,12 @@ def _CZX(
 def _CXXij(
     i: int,
     j: int,
-    S: np.array,
-    A: np.array,
-    Γ: np.array,
-    H: np.array,
-    Λ: np.array,
-) -> np.array:
+    S: np.ndarray,
+    A: np.ndarray,
+    Γ: np.ndarray,
+    H: np.ndarray,
+    Λ: np.ndarray,
+) -> np.ndarray:
     """Covariance between the ith and jth observed random variables
     (1-indexed)
 
@@ -223,8 +209,8 @@ def _CXXij(
 
 
 def CXX(
-    T: int, S: np.array, A: np.array, Γ: np.array, H: np.array, Λ: np.array
-) -> np.array:
+    T: int, S: np.ndarray, A: np.ndarray, Γ: np.ndarray, H: np.ndarray, Λ: np.ndarray
+) -> np.ndarray:
     """Covariance over all observed random variables
 
     Parameters
@@ -257,8 +243,8 @@ def CXX(
 
 
 def CC(
-    T: int, S: np.array, A: np.array, Γ: np.array, H: np.array, Λ: np.array
-) -> np.array:
+    T: int, S: np.ndarray, A: np.ndarray, Γ: np.ndarray, H: np.ndarray, Λ: np.ndarray
+) -> np.ndarray:
     """Full covariance matrix for the joint distribution (Z,X)
 
     Parameters
@@ -291,7 +277,7 @@ def CC(
     )
 
 
-def mmZ(T: int, m: np.array, A: np.array) -> np.array:
+def mmZ(T: int, m: np.ndarray, A: np.ndarray) -> np.ndarray:
     """Full mean vector for the latent process Z
 
     Parameters
@@ -309,12 +295,10 @@ def mmZ(T: int, m: np.array, A: np.array) -> np.array:
         dT-length vector
 
     """
-    return np.hstack(
-        [m @ np.linalg.matrix_power(A, i) for i in range(T)]
-    ).ravel()
+    return np.hstack([m @ np.linalg.matrix_power(A, i) for i in range(T)]).ravel()
 
 
-def mmX(T: int, m: np.array, A: np.array, H: np.array) -> np.array:
+def mmX(T: int, m: np.ndarray, A: np.ndarray, H: np.ndarray) -> np.ndarray:
     """Full mean vector for the observed process X
 
     Parameters
@@ -334,12 +318,10 @@ def mmX(T: int, m: np.array, A: np.array, H: np.array) -> np.array:
         ℓT-length vector
 
     """
-    return np.hstack(
-        [[m @ np.linalg.matrix_power(A, i) @ H] for i in range(T)]
-    ).ravel()
+    return np.hstack([[m @ np.linalg.matrix_power(A, i) @ H] for i in range(T)]).ravel()
 
 
-def mm(T: int, m: np.array, A: np.array, H: np.array) -> np.array:
+def mm(T: int, m: np.ndarray, A: np.ndarray, H: np.ndarray) -> np.ndarray:
     """Full mean vector for the joint distribution (Z, X)
 
     Parameters
@@ -365,16 +347,16 @@ def mm(T: int, m: np.array, A: np.array, H: np.array) -> np.array:
 
 
 def full_log_prob(
-    z: np.array,
-    x: np.array,
-    T: np.array,
-    m: np.array,
-    S: np.array,
-    A: np.array,
-    Γ: np.array,
-    H: np.array,
-    Λ: np.array,
-) -> np.array:
+    z: np.ndarray,
+    x: np.ndarray,
+    T: int,
+    m: np.ndarray,
+    S: np.ndarray,
+    A: np.ndarray,
+    Γ: np.ndarray,
+    H: np.ndarray,
+    Λ: np.ndarray,
+) -> np.ndarray:
     """log of joint distribution function (p.d.f.) for (Z,X) calculated using
     our analytically calculated mean and variance functions
 
@@ -420,23 +402,21 @@ def full_log_prob(
     """
     z, x = map(np.atleast_3d, (z, x))
     return sp_stats.multivariate_normal(
-        mean=mm(T, m, A, H),
-        cov=CC(T, S, A, Γ, H, Λ),
-        allow_singular=True,
+        mean=mm(T, m, A, H), cov=CC(T, S, A, Γ, H, Λ), allow_singular=True
     ).logpdf(np.hstack((*z[:], *x[:])))
 
 
 def composite_log_prob(
-    z: np.array,
-    x: np.array,
+    z: np.ndarray,
+    x: np.ndarray,
     T: int,
-    m: np.array,
-    S: np.array,
-    A: np.array,
-    Γ: np.array,
-    H: np.array,
-    Λ: np.array,
-) -> np.array:
+    m: np.ndarray,
+    S: np.ndarray,
+    A: np.ndarray,
+    Γ: np.ndarray,
+    H: np.ndarray,
+    Λ: np.ndarray,
+) -> np.ndarray:
     """log of joint distribution function (p.d.f.) for (Z,X) calculated using
     the generation process
 
@@ -481,9 +461,7 @@ def composite_log_prob(
     z, x = map(np.atleast_3d, (z, x))
     S, A, Γ, H, Λ = map(np.atleast_2d, (S, A, Γ, H, Λ))
     log_likelihoods = sp_stats.multivariate_normal(
-        mean=m,
-        cov=S,
-        allow_singular=True,
+        mean=m, cov=S, allow_singular=True
     ).logpdf(z[0, :, :])
     for t in range(T - 1):
         log_likelihoods += sp_stats.multivariate_normal(
@@ -497,13 +475,8 @@ def composite_log_prob(
 
 
 def hidden_log_prob(
-    z: np.array,
-    T: np.array,
-    m: np.array,
-    S: np.array,
-    A: np.array,
-    Γ: np.array,
-) -> np.array:
+    z: np.ndarray, T: int, m: np.ndarray, S: np.ndarray, A: np.ndarray, Γ: np.ndarray
+) -> np.ndarray:
     """log of distribution of Z evaluated at z evaluated using the calculations
     we've made
 
@@ -534,20 +507,13 @@ def hidden_log_prob(
     z = np.atleast_3d(z)
     S, A, Γ = map(np.atleast_2d, (S, A, Γ))
     return sp_stats.multivariate_normal(
-        mean=mmZ(T, m, A),
-        cov=CZZ(T, S, A, Γ),
-        allow_singular=True,
+        mean=mmZ(T, m, A), cov=CZZ(T, S, A, Γ), allow_singular=True
     ).logpdf(np.hstack(z[:]))
 
 
 def composite_hidden_log_prob(
-    z: np.array,
-    T: np.array,
-    m: np.array,
-    S: np.array,
-    A: np.array,
-    Γ: np.array,
-) -> np.array:
+    z: np.ndarray, T: int, m: np.ndarray, S: np.ndarray, A: np.ndarray, Γ: np.ndarray
+) -> np.ndarray:
     """log of distribution of Z evaluated at z calculated using the generation
     process
 
@@ -583,9 +549,7 @@ def composite_hidden_log_prob(
     z = np.atleast_3d(z)
     S, A, Γ = map(np.atleast_2d, (S, A, Γ))
     log_likelihoods = sp_stats.multivariate_normal(
-        mean=m,
-        cov=S,
-        allow_singular=True,
+        mean=m, cov=S, allow_singular=True
     ).logpdf(z[0, :, :])
     for t in range(T - 1):
         log_likelihoods += sp_stats.multivariate_normal(
@@ -595,15 +559,15 @@ def composite_hidden_log_prob(
 
 
 def observed_log_prob(
-    x: np.array,
-    T: np.array,
-    m: np.array,
-    S: np.array,
-    A: np.array,
-    Γ: np.array,
-    H: np.array,
-    Λ: np.array,
-) -> np.array:
+    x: np.ndarray,
+    T: int,
+    m: np.ndarray,
+    S: np.ndarray,
+    A: np.ndarray,
+    Γ: np.ndarray,
+    H: np.ndarray,
+    Λ: np.ndarray,
+) -> np.ndarray:
     """log of joint distribution function (p.d.f.) for X calculated using
     our analytically calculated mean and variance functions
 
@@ -645,23 +609,21 @@ def observed_log_prob(
     x = np.atleast_3d(x)
     S, A, Γ, H, Λ = map(np.atleast_2d, (S, A, Γ, H, Λ))
     return sp_stats.multivariate_normal(
-        mean=mmX(T, m, A, H),
-        cov=CXX(T, S, A, Γ, H, Λ),
-        allow_singular=True,
+        mean=mmX(T, m, A, H), cov=CXX(T, S, A, Γ, H, Λ), allow_singular=True
     ).logpdf(np.hstack(x[:]))
 
 
 def full_marginalizable_log_prob(
-    z: np.array,
-    x: np.array,
-    T: np.array,
-    m: np.array,
-    S: np.array,
-    A: np.array,
-    Γ: np.array,
-    H: np.array,
-    Λ: np.array,
-) -> np.array:
+    z: np.ndarray,
+    x: np.ndarray,
+    T: int,
+    m: np.ndarray,
+    S: np.ndarray,
+    A: np.ndarray,
+    Γ: np.ndarray,
+    H: np.ndarray,
+    Λ: np.ndarray,
+) -> np.ndarray:
     """log of joint distribution function (p.d.f.) for (Z,X),
     marginalising over missing dimensions of the data
 
@@ -726,20 +688,13 @@ def full_marginalizable_log_prob(
 
 
 @nb.guvectorize(
-    [
-        (
-            nb.float64[:, :],
-            nb.float64[:],
-            nb.float64[:, :],
-            nb.float64[:],
-        )
-    ],
+    [(nb.float64[:, :], nb.float64[:], nb.float64[:, :], nb.float64[:])],
     "(n,d),(d),(d,d)->(n)",
     nopython=True,
     # fastmath=True,
 )
 def multivariate_normal_log_likelihood(
-    x: np.array, μ: np.array, Σ: np.array, p: np.array
+    x: np.ndarray, μ: np.ndarray, Σ: np.ndarray, p: np.ndarray
 ):
     """computes the log likelihood of a multivariate N(μ,Σ) distribution
     evaluated at the rows of x and assigns it to p;
@@ -776,14 +731,14 @@ def multivariate_normal_log_likelihood(
 def sample_trajectory(
     n: int,
     T: int,
-    m: np.array,
-    S: np.array,
-    A: np.array,
-    Γ: np.array,
-    H: np.array,
-    Λ: np.array,
+    m: np.ndarray,
+    S: np.ndarray,
+    A: np.ndarray,
+    Γ: np.ndarray,
+    H: np.ndarray,
+    Λ: np.ndarray,
     rng: np.random.Generator = np.random.default_rng(42),
-) -> tuple[np.array, np.array]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Given model parameters, this function creates n samples of (Z,X)
 
     Parameters
@@ -827,12 +782,12 @@ def sample_trajectory(
         size=n, random_state=rng
     )
     for t in range(T - 1):
-        z[t + 1, :, :] = z[t, :, :] @ A + sp_stats.multivariate_normal(
-            cov=Γ,
-        ).rvs(size=n, random_state=rng)
-        x[t + 1, :, :] = z[t + 1, :, :] @ H + sp_stats.multivariate_normal(
-            cov=Λ
-        ).rvs(size=n, random_state=rng)
+        z[t + 1, :, :] = z[t, :, :] @ A + sp_stats.multivariate_normal(cov=Γ).rvs(
+            size=n, random_state=rng
+        )
+        x[t + 1, :, :] = z[t + 1, :, :] @ H + sp_stats.multivariate_normal(cov=Λ).rvs(
+            size=n, random_state=rng
+        )
     return z, x
 
 
@@ -841,13 +796,13 @@ def sample_nonlinear_nongaussian_trajectory(
     dz: int,
     dx: int,
     T: int,
-    m: callable,
-    f: callable,
-    Γ: callable,
-    h: callable,
-    Λ: callable,
+    m: Callable[[int, np.random.Generator], np.ndarray],
+    f: Callable[[np.ndarray], np.ndarray],
+    Γ: Callable[[int, np.random.Generator], np.ndarray],
+    h: Callable[[np.ndarray], np.ndarray],
+    Λ: Callable[[int, np.random.Generator], np.ndarray],
     rng: np.random.Generator = np.random.default_rng(42),
-) -> tuple[np.array, np.array]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Given model parameters, this function creates n samples of (Z,X)
 
     Parameters
@@ -891,22 +846,20 @@ def sample_nonlinear_nongaussian_trajectory(
     x = np.zeros(shape=(T, n, dx))
 
     z[0, :, :] = m(n, rng)
-    x[0, :, :] = np.apply_along_axis(func1d=h, axis=-1, arr=z[0, :, :]) + Λ(
-        n, rng
-    )
+    x[0, :, :] = np.apply_along_axis(func1d=h, axis=-1, arr=z[0, :, :]) + Λ(n, rng)
 
     for t in range(T - 1):
-        z[t + 1, :, :] = np.apply_along_axis(
-            func1d=f, axis=-1, arr=z[t, :, :]
-        ) + Γ(n, rng)
-        x[t + 1, :, :] = np.apply_along_axis(
-            func1d=h, axis=-1, arr=z[t + 1, :, :]
-        ) + Λ(n, rng)
+        z[t + 1, :, :] = np.apply_along_axis(func1d=f, axis=-1, arr=z[t, :, :]) + Γ(
+            n, rng
+        )
+        x[t + 1, :, :] = np.apply_along_axis(func1d=h, axis=-1, arr=z[t + 1, :, :]) + Λ(
+            n, rng
+        )
     return z, x
 
 
 def marginalizable_gaussian_log_prob(
-    x: np.array, μ: np.array = None, Σ: np.array = None
+    x: np.ndarray, μ: np.ndarray = None, Σ: np.ndarray = None
 ):
     """gaussian log probability that marginalizes over np.nan values
 

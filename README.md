@@ -1,16 +1,16 @@
 # Unsupervised Multimodal Trajectory Modeling
 
-[![DOI](https://zenodo.org/badge/692068384.svg)](https://zenodo.org/badge/latestdoi/692068384)
+[![DOI](img/692068384.svg)](https://zenodo.org/badge/latestdoi/692068384)
+[![SWH](https://archive.softwareheritage.org/badge/origin/https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling)
 
 We propose and validate a mixture of state space models to perform unsupervised
 clustering of short trajectories[^1]. Within the state space framework, we let
-expensive-to-gather biomarkers correspond to hidden states and readily
-obtainable cognitive metrics correspond to measurements. Upon training with
-expectation maximization, we find that our clusters stratify persons according
-to clinical outcome. Furthermore, we can effectively predict on held-out
-trajectories using cognitive metrics alone. Our approach accommodates missing
-data through model marginalization and generalizes across research and clinical
-cohorts.
+expensive-to-gather biomarkers correspond to hidden states and readily obtainable
+cognitive metrics correspond to measurements. Upon training with expectation
+maximization, we find that our clusters stratify persons according to clinical
+outcome. Furthermore, we can effectively predict on held-out trajectories using
+cognitive metrics alone. Our approach accommodates missing data through model
+marginalization and generalizes across research and clinical cohorts.
 
 ### Data format
 
@@ -26,14 +26,14 @@ $z_t^i \in \mathbb{R}^d$ corresponds to the state at time $t$ for the $i$ th
 instance and measurements $x_{1:T}^{i} = (x_1^i, x_2^i, \dotsc, x_T^i)$ where
 $x_t^i \in \mathbb{R}^\ell$ corresponds to the observation at time $t$ for the
 $i$ th instance. For the purposes of this code, we adopt the convention that
-collections of time-delineated sequences of vectors will be stored as
-3-tensors, where the first dimension spans time $1\leq t \leq T$, the second
-dimension spans instances $1\leq i \leq n_d$ (these will almost always
-correspond to an individual or participant), and the third dimension spans the
-components of each state or observation vector (and so will have dimension
-either $d$ or $\ell$). We accommodate trajectories of differing lengths by
-standardising to the longest available trajectory in a dataset and appending
-`np.nan`'s to shorter trajectories.
+collections of time-delineated sequences of vectors will be stored as 3-tensors,
+where the first dimension spans time $1\leq t \leq T$, the second dimension spans
+instances $1\leq i \leq n_d$ (these will almost always correspond to an
+individual or participant), and the third dimension spans the components of each
+state or observation vector (and so will have dimension either $d$ or $\ell$). We
+accommodate trajectories of differing lengths by standardising to the longest
+available trajectory in a dataset and appending `np.nan`'s to shorter
+trajectories.
 
 ### Model specification
 
@@ -50,18 +50,18 @@ Each individual $i$ is independently assigned to some cluster $c^i$ with
 probability $\pi_{c}$, and then conditional on this cluster assignment, their
 initial state $z_1^i$ is drawn according to $p(z_1^i| c)$, with each subsequent
 state $z_t^i, 2\leq t \leq T$ being drawn in turn using the cluster-specific
-_state model_ $p(z_t^i | z_{t-1}^i, c)$, depending on the previous state. At
-each point in time, we obtain an observation $x_t^i$ from the cluster-specific
+_state model_ $p(z_t^i | z_{t-1}^i, c)$, depending on the previous state. At each
+point in time, we obtain an observation $x_t^i$ from the cluster-specific
 _measurement model_ $p(x_t^i | z_t^i, c)$, depending on the current state. In
-what follows, we assume both the state and measurement models are stationary
-for each cluster, i.e. they are independent of $t$. In particular, for a given
-individual, the relationship between the state and measurement should not
-change over time.
+what follows, we assume both the state and measurement models are stationary for
+each cluster, i.e. they are independent of $t$. In particular, for a given
+individual, the relationship between the state and measurement should not change
+over time.
 
 In our main framework, inspired by the work of Chiappa and Barber[^2], we
 additionally assume that the cluster-specific state initialisation is Gaussian,
-i.e. $p(z_1^i| c) = \eta_d(z_1^i; m_c, S_c)$, and the cluster-specific state
-and measurement models are linear Gaussian, i.e.
+i.e. $p(z_1^i| c) = \eta_d(z_1^i; m_c, S_c)$, and the cluster-specific state and
+measurement models are linear Gaussian, i.e.
 $p(z_t^i | z_{t-1}^i, c) = \eta_d(z_t^i; z_{t-1}^iA_c, \Gamma_c)$ and
 $p(x_t^i
 | z_t^i, c) = \eta_\ell(x_t^i; z_t^iH_c, \Lambda_c)$, where
@@ -83,9 +83,9 @@ $\mathcal{D}$ and an arbitrary set of cluster assignments $c^i$ (as these are
 also latent/ hidden from us) and iteratively perform M and E steps (from which
 EM[^3] gets its name):
 
-- [**E**] Expectation step: given the current model, we assign each data
-  instance $(z^i_{1:T}, x^i_{1:T})$ to the cluster to which it is mostly likely
-  to belong under the current model
+- [**E**] Expectation step: given the current model, we assign each data instance
+  $(z^i_{1:T}, x^i_{1:T})$ to the cluster to which it is mostly likely to belong
+  under the current model
 - [**M**] Maximization step: given the current cluster assignments, we compute
   the sample-level cluster assignment probabilities (the $\pi_c$) and optimal
   cluster-specific parameters
@@ -113,13 +113,13 @@ problems:
    feature is one way to recognise this problem.
 2. Discrete / static features. Including discrete data violates our Gaussian
    assumptions. If we learn a cluster where each trajectory has the same value
-   for one of the states or observations at a given time step, then we are
-   prone to estimating a singular covariance structure for this cluster which
-   yields numerical instabilities. Adding a small bit of noise to discrete
-   features may remediate numerical instability to some extent.
+   for one of the states or observations at a given time step, then we are prone
+   to estimating a singular covariance structure for this cluster which yields
+   numerical instabilities. Adding a small bit of noise to discrete features may
+   remediate numerical instability to some extent.
 
-Another assumption that is easy-to-violate is our stationarity assumption for
-the measurement model.
+Another assumption that is easy-to-violate is our stationarity assumption for the
+measurement model.
 
 [^1]:
     M. Burkhart, L. Lee, D. Vaghari, A. Toh, E. Chong, C. Chen, P. Tiňo, and Z.
@@ -132,16 +132,26 @@ the measurement model.
     Institute for Biological Cybernetics, 2007.
 
 [^3]:
-    A. Dempster, N. Laird, and D. Rubin. _Maximum Likelihood from  
-    Incomplete Data via the EM Algorithm._ J. Roy. Stat. Soc. Ser. B (Stat.
-    Methodol.) 39 (1977).
+    A. Dempster, N. Laird, and D. Rubin. _Maximum Likelihood from Incomplete Data
+    via the EM Algorithm._ J. Roy. Stat. Soc. Ser. B (Stat. Methodol.) 39 (1977).
 
 <!--
-rm dist/*
-isort --profile black .
-black .
-prettier --write --print-width 79 --prose-wrap always **/*.md
+
+Format:
+```sh
+ruff format .
+ruff check . --fix
+```
+
+Send to pypi:
+```
+rm -rf dist
+python3 -m pip install --upgrade build
 python3 -m build
-# twine upload -r testpypi dist/*
-twine upload -s  -r pypi dist/*
+python3 -m pip install --upgrade twine
+python3 -m pip install --upgrade pypi_attestations
+python -m pypi_attestations sign dist/*
+python3 -m twine upload --attestations --repository testpypi dist/*
+```
+
 -->

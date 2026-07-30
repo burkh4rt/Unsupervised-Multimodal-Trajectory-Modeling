@@ -18,10 +18,7 @@ class StateSpaceModelClassifier(
     space model
     """
 
-    def __init__(
-        self,
-        component_model: type(ssm.StateSpaceModel),
-    ):
+    def __init__(self, component_model: type[ssm.StateSpaceModel]):
         super().__init__()
 
         self.component_model = component_model
@@ -52,8 +49,7 @@ class StateSpaceModelClassifier(
         jt_p = np.sum(
             np.column_stack(
                 [
-                    self.propensities[i]
-                    * np.exp(self.class_models[i].score(data=data))
+                    self.propensities[i] * np.exp(self.class_models[i].score(data=data))
                     for i in range(self.n_classes)
                 ]
             ),
@@ -62,9 +58,7 @@ class StateSpaceModelClassifier(
         assert jt_p.shape[0] == data[0].shape[1]
         return float(np.sum(np.log(jt_p)))
 
-    def predict_proba(
-        self, data: tuple[np.ndarray, np.ndarray] = None
-    ) -> np.ndarray:
+    def predict_proba(self, data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray:
         if data is None:
             data = self.data
         else:
@@ -72,8 +66,7 @@ class StateSpaceModelClassifier(
 
         pc = np.column_stack(
             [
-                self.propensities[i]
-                * np.exp(self.class_models[i].score(data=data))
+                self.propensities[i] * np.exp(self.class_models[i].score(data=data))
                 for i in range(self.n_classes)
             ]
         )
@@ -83,9 +76,7 @@ class StateSpaceModelClassifier(
         assert np.all(pc >= 0.0) and np.allclose(np.sum(pc, axis=-1), 1.0)
         return pc
 
-    def predict(
-        self, data: tuple[np.ndarray, np.ndarray] = None
-    ) -> np.ndarray:
+    def predict(self, data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray:
         if data is None:
             data = self.data
         else:

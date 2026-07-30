@@ -15,28 +15,22 @@ import sklearn.model_selection as skl_mdl_sel
 
 
 def regressed_out_effect_cv(
-    regressand: np.array, effect: np.array, model=skl_lm.RidgeCV()
+    regressand: np.ndarray, effect: np.ndarray, model=skl_lm.RidgeCV()
 ):
     """regressed out the effect of `effect` from `regressand` in a
     cross-validated manner"""
     fin_idx = np.isfinite(np.column_stack([regressand, effect])).all(axis=1)
     if not fin_idx.all():
-        warnings.warn(
-            "Encountered {} nans".format((~fin_idx).astype(int).sum())
-        )
+        warnings.warn("Encountered {} nans".format((~fin_idx).astype(int).sum()))
     preds_cv = skl_mdl_sel.cross_val_predict(
-        model,
-        X=effect[fin_idx],
-        y=regressand[fin_idx],
-        n_jobs=-1,
-        cv=5,
+        model, X=effect[fin_idx], y=regressand[fin_idx], n_jobs=-1, cv=5
     )
     resids = np.nan * np.ones_like(regressand)
     resids[fin_idx] = regressand[fin_idx] - preds_cv
     return resids
 
 
-def logit_cv_auc(X: np.array, y: np.array, cv: int = 5):
+def logit_cv_auc(X: np.ndarray, y: np.ndarray, cv: int = 5):
     """AUC from the cross-validated logistic regression y~X"""
     idx = np.isfinite(np.column_stack([X, y])).all(axis=1)
     if (snan := sum((~idx).astype(int))) > 0:
@@ -54,7 +48,7 @@ def logit_cv_auc(X: np.array, y: np.array, cv: int = 5):
 
 
 def stratified_logit_cv_metrics(
-    X: np.array, y: np.array, return_perfs: bool = False
+    X: np.ndarray, y: np.ndarray, return_perfs: bool = False
 ):
     pred_col = 0.0 * y
     batch_aucs = []
@@ -67,9 +61,7 @@ def stratified_logit_cv_metrics(
             .predict_proba(X[test_idx])[:, 1][:, np.newaxis]
         )
         batch_aucs.append(
-            skl_mets.roc_auc_score(
-                y_true=y[test_idx], y_score=pred_col[test_idx]
-            )
+            skl_mets.roc_auc_score(y_true=y[test_idx], y_score=pred_col[test_idx])
         )
     perf = {
         "AUC": skl_mets.roc_auc_score(y_true=y, y_score=pred_col).round(4),

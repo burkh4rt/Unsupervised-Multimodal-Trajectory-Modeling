@@ -1,0 +1,6 @@
+[formatting]
+    align_entries  = true
+    compact_arrays = false
+    indent_entries = true
+    indent_tables  = true
+    reorder_keys   = true
