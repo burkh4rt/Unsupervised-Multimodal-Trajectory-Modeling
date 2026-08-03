@@ -1,5 +1,6 @@
 # Unsupervised Multimodal Trajectory Modeling
 
+![PyPI Version](https://img.shields.io/pypi/v/unsupervised-multimodal-trajectory-modeling)
 [![DOI](https://raw.githubusercontent.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling/master/img/692068384.svg)](https://zenodo.org/badge/latestdoi/692068384)
 [![SWH](https://archive.softwareheritage.org/badge/origin/https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/burkh4rt/Unsupervised-Multimodal-Trajectory-Modeling)
 
